@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>✨ Magic Block Builder ✨</title>
+<!-- Add these 3 lines for Google: -->
+<meta name="description" content="Play the Magic Block Builder! A fun, interactive, and colorful 2D building block game for kids and adults. Free online game.">
+<meta name="keywords" content="building blocks, kids game, free online game, magic blocks, educational web game, 2D builder">
+<meta name="author" content="Ian Luyali">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>✨ Magic Block Builder ✨</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap');
+
+        :root {
+            --primary: #FF5E7E;
+            --secondary: #38B6FF;
+            --accent: #FFDE59;
+            --bg-sky: #87CEEB;
+            --text: #2D3436;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none; /* Prevent scroll on touch devices */
+        }
+
+        body {
+            margin: 0; padding: 0; overflow: hidden;
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(180deg, var(--bg-sky) 0%, #E0F6FF 100%);
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        /* --- Chunky, Fun UI --- */
+        header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-bottom: 4px solid white;
+            z-index: 10;
+        }
+
+        .logo {
+            font-family: 'Fredoka One', cursive;
+            font-size: 24px; color: var(--primary);
+            text-shadow: 2px 2px 0px white, 4px 4px 0px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .toolbar-group { display: flex; align-items: center; gap: 12px; }
+
+        button, select {
+            padding: 10px 15px; font-size: 18px;
+            border: none; border-radius: 20px;
+            background-color: white; color: var(--text);
+            cursor: pointer; font-weight: bold; font-family: 'Nunito', sans-serif;
+            box-shadow: 0 4px 0 #D1D9E6, 0 5px 10px rgba(0,0,0,0.1);
+            transition: all 0.1s cubic-bezier(0.4, 2, 0.2, 1);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #D1D9E6;
+        }
+
+        button:hover:not(:disabled) { background-color: #F8F9FA; transform: translateY(-2px); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-magic { background-color: var(--primary); color: white; box-shadow: 0 4px 0 #D63056; }
+        .btn-magic:hover:not(:disabled) { background-color: #FF708D; }
+        
+        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; }
+
+        main { flex: 1; position: relative; }
+
+        #workspace { width: 100%; height: 100%; cursor: grab; overflow: hidden; position: absolute; }
+        #workspace:active { cursor: grabbing; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* --- Playful Palette --- */
+        #palette {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px; border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
+            display: flex; gap: 15px; border: 4px solid white;
+        }
+
+        .color-swatch {
+            width: 50px; height: 50px; border-radius: 15px;
+            cursor: grab;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
+            transition: transform 0.2s cubic-bezier(0.4, 2, 0.2, 1);
+            position: relative;
+        }
+        .color-swatch::after {
+            content: ''; position: absolute; top: 5px; left: 10px; width: 30px; height: 10px;
+            background: rgba(255,255,255,0.5); border-radius: 5px;
+        }
+        .color-swatch:hover { transform: scale(1.1) translateY(-5px); }
+        .color-swatch:active { cursor: grabbing; transform: scale(0.9) translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+
+        /* --- Blueprint/Reference --- */
+        #reference-panel {
+            position: absolute; top: 20px; right: 20px;
+            width: 130px; height: 130px;
+            background: white; border: 4px solid var(--secondary); border-radius: 16px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            cursor: pointer; display: none; overflow: hidden; z-index: 20;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #reference-panel::before {
+            content: "💡 Blueprint"; display: block; background: var(--secondary);
+            color: white; font-size: 12px; text-align: center; padding: 5px 0; font-weight: bold;
+        }
+        #ref-canvas { width: 100%; height: calc(100% - 25px); background: #f8fbff; }
+
+        #reference-panel.expanded {
+            top: 50%; right: 50%; transform: translate(50%, -50%);
+            width: 80vmin; height: 80vmin; border-width: 8px;
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+        }
+
+        /* --- Cute Helper Toast --- */
+        #helper {
+            position: absolute; left: 20px; top: 20px;
+            background: white; padding: 15px; border-radius: 20px;
+            font-size: 16px; color: var(--text); border: 3px solid var(--accent);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); pointer-events: none;
+            display: flex; align-items: center; gap: 10px; animation: float 3s infinite ease-in-out;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* Mobile tweaks */
+        @media (max-width: 768px) {
+            header { flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; }
+            .color-swatch { width: 40px; height: 40px; }
+            #palette { padding: 10px; bottom: 20px; gap: 8px; }
+            #helper { display: none; } /* Hide text on small screens to save space */
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">🧸 Magic Block Builder</div>
+        
+        <div class="toolbar-group">
+            <select id="template-select">
+                <option value="none">✨ Free Build</option>
+                <option value="castle">🏰 Castle</option>
+                <option value="rocket">🚀 Rocket</option>
+                <option value="dino">🦕 Dinosaur</option>
+                <option value="flower">🌸 Flower</option>
+            </select>
+            <button id="btn-zoom-out" title="Zoom Out">🔍-</button>
+            <button id="btn-zoom-in" title="Zoom In">🔍+</button>
+        </div>
+        
+        <div class="toolbar-group">
+            <button id="btn-undo" disabled title="Undo">↩️</button>
+            <button id="btn-redo" disabled title="Redo">↪️</button>
+            <button id="btn-reset" class="btn-magic">🗑️ Clear All</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="workspace">
+            <canvas id="main-canvas"></canvas>
+            
+            <div id="helper">
+                <span>👋</span> <strong>Drag a color from the bottom to start!</strong>
+            </div>
+
+            <!-- Draggable Palette -->
+            <div id="palette"></div>
+        </div>
+
+        <!-- Consultation Thumbnail -->
+        <div id="reference-panel">
+            <canvas id="ref-canvas"></canvas>
+        </div>
+    </main>
+
+<script>
+    // --- Audio System (Synth Sounds) ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let actx = null;
+
+    function initAudio() {
+        if (!actx) actx = new AudioCtx();
+        if (actx.state === 'suspended') actx.resume();
+    }
+
+    function playSound(type) {
+        if (!actx) return;
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.connect(gain);
+        gain.connect(actx.destination);
+
+        const now = actx.currentTime;
+        
+        if (type === 'pop') { // Placing a block
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'pickup') { // Grabbing a block
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'trash') { // Deleting
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'magic') { // Reset/Change Template
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(600, now + 0.1);
+            osc.frequency.setValueAtTime(800, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now); osc.stop(now + 0.4);
+        }
+    }
+
+    // --- State & Constants ---
+    const MAX_BLOCKS = 300;
+    const BLOCK_SIZE = 50;
+    // Fun Colors: Red, Orange, Yellow, Lime, Cyan, Blue, Purple, Pink, White, Black
+    const COLORS = ['#FF4757', '#FFA502', '#F1C40F', '#2ED573', '#1E90FF', '#3742FA', '#9C88FF', '#FF6B81', '#FFFFFF', '#2F3542'];
+    
+    let blocks = []; 
+    let history = [];
+    let historyIndex = -1;
+
+    // Viewport State
+    let offsetX = 0, offsetY = 0, zoom = 1.0;
+    let isPanning = false, panStartX, panStartY;
+
+    // Drag State
+    let isDragging = false;
+    let draggedBlock = null; 
+    let mouseScreenX = 0, mouseScreenY = 0;
+
+    // Particles System
+    let particles = [];
+    let clouds = [
+        {x: 100, y: 50, speed: 0.2, scale: 1}, {x: 400, y: 100, speed: 0.1, scale: 1.5},
+        {x: 800, y: 80, speed: 0.3, scale: 0.8}, {x: 1200, y: 150, speed: 0.15, scale: 1.2}
+    ];
+
+    // Fun Blueprints
+    const TEMPLATES = {
+        castle: [
+            {x:-3,y:0,c:8},{x:-2,y:0,c:8},{x:-1,y:0,c:8},{x:0,y:0,c:8},{x:1,y:0,c:8},{x:2,y:0,c:8},{x:3,y:0,c:8},
+            {x:-3,y:1,c:8},{x:-2,y:1,c:8},{x:-1,y:1,c:8},{x:0,y:1,c:9},{x:1,y:1,c:8},{x:2,y:1,c:8},{x:3,y:1,c:8},
+            {x:-3,y:2,c:8},{x:-2,y:2,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:9},{x:1,y:2,c:8},{x:2,y:2,c:8},{x:3,y:2,c:8},
+            {x:-3,y:3,c:8},{x:-1,y:3,c:8},{x:1,y:3,c:8},{x:3,y:3,c:8}, // Battlements
+            {x:-3,y:4,c:0},{x:3,y:4,c:0} // Flags
+        ],
+        rocket: [
+            {x:-1,y:0,c:1},{x:1,y:0,c:1}, // Thrusters
+            {x:-1,y:1,c:8},{x:0,y:1,c:8},{x:1,y:1,c:8},
+            {x:-1,y:2,c:8},{x:0,y:2,c:4},{x:1,y:2,c:8}, // Window
+            {x:-2,y:3,c:0},{x:-1,y:3,c:8},{x:0,y:3,c:8},{x:1,y:3,c:8},{x:2,y:3,c:0}, // Wings
+            {x:-1,y:4,c:8},{x:0,y:4,c:8},{x:1,y:4,c:8},
+            {x:0,y:5,c:0} // Tip
+        ],
+        dino: [
+            {x:-1,y:0,c:3},{x:1,y:0,c:3},{x:2,y:0,c:3}, // Feet
+            {x:-1,y:1,c:3},{x:1,y:1,c:3},{x:2,y:1,c:3},
+            {x:-2,y:2,c:3},{x:-1,y:2,c:3},{x:0,y:2,c:3},{x:1,y:2,c:3},{x:2,y:2,c:3},{x:3,y:2,c:3}, // Tail to body
+            {x:-3,y:3,c:3},{x:-2,y:3,c:3},{x:-1,y:3,c:3},{x:0,y:3,c:3},{x:1,y:3,c:3},
+            {x:-1,y:4,c:3},{x:0,y:4,c:3}, // Neck
+            {x:-1,y:5,c:3},{x:0,y:5,c:3},{x:1,y:5,c:3}, // Head
+            {x:0,y:6,c:9} // Eye
+        ],
+        flower: [
+            {x:0,y:0,c:3},{x:0,y:1,c:3},{x:0,y:2,c:3}, // Stem
+            {x:-1,y:1,c:3},{x:1,y:2,c:3}, // Leaves
+            {x:0,y:3,c:2}, // Center
+            {x:0,y:4,c:7},{x:0,y:2,c:7},{x:-1,y:3,c:7},{x:1,y:3,c:7} // Petals
+        ]
+    };
+    let activeTemplate = 'none';
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('main-canvas');
+    const ctx = canvas.getContext('2d');
+    const refCanvas = document.getElementById('ref-canvas');
+    const refCtx = refCanvas.getContext('2d');
+    
+    const paletteDiv = document.getElementById('palette');
+    const refPanel = document.getElementById('reference-panel');
+    const templateSelect = document.getElementById('template-select');
+    
+    const btnUndo = document.getElementById('btn-undo');
+    const btnRedo = document.getElementById('btn-redo');
+    const btnReset = document.getElementById('btn-reset');
+    const zoomInBtn = document.getElementById('btn-zoom-in');
+    const zoomOutBtn = document.getElementById('btn-zoom-out');
+
+    // --- Initialization ---
+    function init() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        offsetX = canvas.width / 2;
+        offsetY = canvas.height - 180; // Ground near bottom
+
+        // Build Palette
+        COLORS.forEach(color => {
+            let swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = color;
+            
+            // Interaction support (Mouse & Touch)
+            const startDrag = (e) => {
+                initAudio(); // Unlock audio on first interaction
+                if(blocks.length >= MAX_BLOCKS) return;
+                isDragging = true;
+                draggedBlock = { color: color, sourceIndex: -1 };
+                updateMousePos(e);
+                playSound('pickup');
+                document.getElementById('helper').style.display = 'none'; // hide helper
+            };
+
+            swatch.addEventListener('mousedown', startDrag);
+            swatch.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e); }, {passive: false});
+            
+            paletteDiv.appendChild(swatch);
+        });
+
+        saveState(); 
+        requestAnimationFrame(gameLoop); // Start animation loop
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    // --- History (Undo/Redo) ---
+    function saveState() {
+        history = history.slice(0, historyIndex + 1);
+        history.push(JSON.parse(JSON.stringify(blocks)));
+        historyIndex++;
+        updateUI();
+    }
+
+    function undo() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            blocks = JSON.parse(JSON.stringify(history[historyIndex]));
+            updateUI(); playSound('trash'); spawnParticles(canvas.width/2, canvas.height/2, '#999');
+        }
+    }
+
+    function redo() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            blocks = JSON.parse(JSON.stringify(history[historyIndex]));
+            updateUI(); playSound('pop');
+        }
+    }
+
+    function reset() {
+        blocks = [];
+        saveState();
+        offsetX = canvas.width / 2;
+        offsetY = canvas.height - 180;
+        zoom = 1.0;
+        playSound('magic');
+        spawnParticles(canvas.width/2, canvas.height/2, '#FFDE59', 30);
+    }
+
+    function updateUI() {
+        btnUndo.disabled = historyIndex <= 0;
+        btnRedo.disabled = historyIndex >= history.length - 1;
+    }
+
+    // --- Coordinate Helpers ---
+    function screenToWorld(x, y) {
+        return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom };
+    }
+
+    function worldToScreen(x, y) {
+        return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY };
+    }
+
+    // --- Particle System ---
+    function spawnParticles(screenX, screenY, color, count=10) {
+        for(let i=0; i<count; i++) {
+            particles.push({
+                x: screenX, y: screenY,
+                vx: (Math.random() - 0.5) * 15,
+                vy: (Math.random() - 1) * 15,
+                life: 1.0, color: color,
+                size: Math.random() * 8 + 4
+            });
+        }
+    }
+
+    function updateAndDrawParticles(ctx) {
+        for(let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy;
+            p.vy += 0.5; // gravity
+            p.life -= 0.02;
+            
+            if(p.life <= 0) { particles.splice(i, 1); continue; }
+            
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+
+    function drawScenery(ctx) {
+        // Clouds
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        clouds.forEach(c => {
+            c.x += c.speed;
+            if (c.x > canvas.width + 100) c.x = -100;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, 30*c.scale, 0, Math.PI*2);
+            ctx.arc(c.x + 25*c.scale, c.y - 15*c.scale, 35*c.scale, 0, Math.PI*2);
+            ctx.arc(c.x + 50*c.scale, c.y, 25*c.scale, 0, Math.PI*2);
+            ctx.fill();
+        });
+
+        // Rolling Hills Ground
+        ctx.fillStyle = '#78E08F';
+        ctx.beginPath();
+        ctx.moveTo(0, offsetY + BLOCK_SIZE);
+        ctx.quadraticCurveTo(canvas.width*0.25, offsetY - 20, canvas.width*0.5, offsetY + BLOCK_SIZE);
+        ctx.quadraticCurveTo(canvas.width*0.75, offsetY + 60, canvas.width, offsetY + BLOCK_SIZE);
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        ctx.fill();
+
+        // Ground highlight
+        ctx.fillStyle = '#B8E994';
+        ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
+    }
+
+    // --- Rendering ---
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        drawScenery(ctx);
+        
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(zoom, zoom);
+
+        // Draw Blueprint Silhouette
+        if (activeTemplate !== 'none') {
+            const template = TEMPLATES[activeTemplate];
+            ctx.globalAlpha = 0.3;
+            template.forEach(b => {
+                let px = b.x * BLOCK_SIZE;
+                let py = -(b.y * BLOCK_SIZE);
+                drawRoundedBlock(ctx, px, py, COLORS[b.c], false);
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Draw Placed Blocks
+        blocks.forEach(b => {
+            drawRoundedBlock(ctx, b.x, b.y, b.color, true);
+        });
+
+        // Draw Snapping Ghost Preview
+        if (isDragging && draggedBlock) {
+            let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
+            let snap = calculateSnap(worldPos.x, worldPos.y);
+            
+            ctx.globalAlpha = 0.4;
+            drawRoundedBlock(ctx, snap.x, snap.y, draggedBlock.color, true);
+            ctx.globalAlpha = 1.0;
+        }
+
+        ctx.restore();
+
+        // Draw floating block strictly under pointer
+        if (isDragging && draggedBlock) {
+            ctx.save();
+            ctx.translate(mouseScreenX - (BLOCK_SIZE*zoom)/2, mouseScreenY - (BLOCK_SIZE*zoom)/2);
+            ctx.scale(zoom*1.1, zoom*1.1); // slightly larger when held
+            drawRoundedBlock(ctx, 0, 0, draggedBlock.color, true);
+            ctx.restore();
+        }
+
+        updateAndDrawParticles(ctx);
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function drawRoundedBlock(ctx, x, y, color, shiny=true) {
+        const radius = 8;
+        const sz = BLOCK_SIZE;
+        
+        // Base Color
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        if(ctx.roundRect) {
+            ctx.roundRect(x, y, sz, sz, radius);
+        } else {
+            ctx.rect(x, y, sz, sz); // Fallback
+        }
+        ctx.fill();
+        
+        if (shiny) {
+            // Top Light
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(x, y, sz, 10, [radius, radius, 0, 0]);
+            else ctx.rect(x, y, sz, 10);
+            ctx.fill();
+            
+            // Bottom Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(x, y + sz - 10, sz, 10, [0, 0, radius, radius]);
+            else ctx.rect(x, y + sz - 10, sz, 10);
+            ctx.fill();
+            
+            // Lego Nub (Top)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            if(ctx.roundRect) ctx.roundRect(x + 12, y - 8, sz - 24, 12, 4);
+            else ctx.rect(x + 12, y - 8, sz - 24, 12);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.4)'; // Nub shine
+            ctx.fillRect(x + 15, y - 6, sz - 30, 3);
+        }
+    }
+
+    // --- Interaction Logic ---
+    function updateMousePos(e) {
+        if (e.touches && e.touches.length > 0) {
+            mouseScreenX = e.touches[0].clientX;
+            mouseScreenY = e.touches[0].clientY;
+        } else {
+            mouseScreenX = e.clientX;
+            mouseScreenY = e.clientY;
+        }
+    }
+
+    function getBlockAt(worldX, worldY) {
+        for (let i = blocks.length - 1; i >= 0; i--) {
+            let b = blocks[i];
+            if (worldX >= b.x && worldX < b.x + BLOCK_SIZE && worldY >= b.y && worldY < b.y + BLOCK_SIZE) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function isOccupied(x, y) {
+        return blocks.some(b => b.x === x && b.y === y);
+    }
+
+    function calculateSnap(worldX, worldY) {
+        let snapX = Math.round((worldX - BLOCK_SIZE/2) / BLOCK_SIZE) * BLOCK_SIZE;
+        let snapY = Math.round((worldY - BLOCK_SIZE/2) / BLOCK_SIZE) * BLOCK_SIZE;
+
+        if (snapY > 0) snapY = 0; 
+        while (isOccupied(snapX, snapY)) snapY -= BLOCK_SIZE;
+
+        return { x: snapX, y: snapY };
+    }
+
+    // Move handlers
+    const onMove = (e) => {
+        if(isDragging || isPanning) e.preventDefault(); // Prevent scroll while playing
+        updateMousePos(e);
+        
+        if (isPanning) {
+            offsetX = mouseScreenX - panStartX;
+            offsetY = mouseScreenY - panStartY;
+        }
+    };
+
+    // End drag handlers
+    const onEnd = (e) => {
+        isPanning = false;
+        if (isDragging && draggedBlock) {
+            const rect = canvas.getBoundingClientRect();
+            // Drop within canvas
+            if (mouseScreenX >= rect.left && mouseScreenX <= rect.right &&
+                mouseScreenY >= rect.top && mouseScreenY <= rect.bottom) {
+                
+                let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
+                let snap = calculateSnap(worldPos.x, worldPos.y);
+                
+                blocks.push({ x: snap.x, y: snap.y, color: draggedBlock.color });
+                playSound('pop');
+                
+                // Spawn particles at screen location of the snap
+                let sc = worldToScreen(snap.x + BLOCK_SIZE/2, snap.y + BLOCK_SIZE/2);
+                spawnParticles(sc.x, sc.y, draggedBlock.color);
+                
+                saveState();
+            } else if (draggedBlock.sourceIndex !== -1) {
+                // Thrown off screen = trash
+                playSound('trash');
+                spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color);
+                // Already removed from array on start drag, so just save state
+                saveState();
+            }
+            isDragging = false; draggedBlock = null;
+        }
+    };
+
+    window.addEventListener('mousemove', onMove, {passive: false});
+    window.addEventListener('touchmove', onMove, {passive: false});
+    window.addEventListener('mouseup', onEnd);
+    window.addEventListener('touchend', onEnd);
+
+    // Canvas specific events (Grabbing blocks / panning)
+    const onCanvasStart = (e) => {
+        initAudio();
+        updateMousePos(e);
+        
+        // Right click, Middle click, or two-finger touch for panning
+        if (e.button === 2 || e.button === 1 || (e.touches && e.touches.length > 1)) {
+            isPanning = true;
+            panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
+            return;
+        }
+
+        let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
+        let clickedIndex = getBlockAt(worldPos.x, worldPos.y);
+
+        if (clickedIndex !== -1) {
+            isDragging = true;
+            let b = blocks[clickedIndex];
+            draggedBlock = { color: b.color, sourceIndex: clickedIndex };
+            blocks.splice(clickedIndex, 1);
+            playSound('pickup');
+            updateUI(); 
+        }
+    };
+
+    canvas.addEventListener('mousedown', onCanvasStart);
+    canvas.addEventListener('touchstart', (e) => { if(e.touches.length === 1) e.preventDefault(); onCanvasStart(e); }, {passive: false});
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Zooming
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomAmount = 0.1;
+        const oldZoom = zoom;
+
+        zoom += (e.deltaY < 0) ? zoomAmount : -zoomAmount;
+        zoom = Math.max(0.4, Math.min(zoom, 2.5));
+
+        let mouseWorldX = (mouseScreenX - offsetX) / oldZoom;
+        let mouseWorldY = (mouseScreenY - offsetY) / oldZoom;
+        offsetX = mouseScreenX - (mouseWorldX * zoom);
+        offsetY = mouseScreenY - (mouseWorldY * zoom);
+    }, {passive: false});
+
+    // --- UI Controls ---
+    btnUndo.addEventListener('click', undo);
+    btnRedo.addEventListener('click', redo);
+    btnReset.addEventListener('click', reset);
+
+    zoomInBtn.addEventListener('click', () => { zoom = Math.min(zoom + 0.2, 2.5); playSound('pickup'); });
+    zoomOutBtn.addEventListener('click', () => { zoom = Math.max(zoom - 0.2, 0.4); playSound('pickup'); });
+
+    // Blueprint Selector
+    templateSelect.addEventListener('change', (e) => {
+        activeTemplate = e.target.value;
+        playSound('magic');
+        spawnParticles(canvas.width/2, canvas.height/4, '#FFDE59', 20);
+        
+        if (activeTemplate === 'none') {
+            refPanel.style.display = 'none'; refPanel.classList.remove('expanded');
+        } else {
+            refPanel.style.display = 'block'; drawThumbnail();
+        }
+    });
+
+    refPanel.addEventListener('click', () => {
+        playSound('pickup');
+        refPanel.classList.toggle('expanded');
+        setTimeout(drawThumbnail, 400); // redraw after CSS transition
+    });
+
+    function drawThumbnail() {
+        if (activeTemplate === 'none') return;
+        refCanvas.width = refPanel.clientWidth;
+        refCanvas.height = refPanel.clientHeight - 25; 
+
+        refCtx.clearRect(0, 0, refCanvas.width, refCanvas.height);
+        const template = TEMPLATES[activeTemplate];
+        
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        template.forEach(b => {
+            if(b.x < minX) minX = b.x; if(b.x > maxX) maxX = b.x;
+            if(b.y < minY) minY = b.y; if(b.y > maxY) maxY = b.y;
+        });
+
+        let widthUnits = (maxX - minX + 1), heightUnits = (maxY - minY + 1);
+        let scale = Math.min((refCanvas.width - 20) / (widthUnits * BLOCK_SIZE), (refCanvas.height - 20) / (heightUnits * BLOCK_SIZE));
+
+        refCtx.save();
+        refCtx.translate(refCanvas.width / 2, refCanvas.height / 2);
+        refCtx.scale(scale, scale);
+        
+        let centerX = ((minX + maxX) / 2) * BLOCK_SIZE + (BLOCK_SIZE/2);
+        let centerY = -((minY + maxY) / 2) * BLOCK_SIZE - (BLOCK_SIZE/2);
+        refCtx.translate(-centerX, -centerY);
+
+        template.forEach(b => drawRoundedBlock(refCtx, b.x * BLOCK_SIZE, -(b.y * BLOCK_SIZE), COLORS[b.c], true));
+        refCtx.restore();
+    }
+
+    init();
+</script>
+</body>
+</html>
