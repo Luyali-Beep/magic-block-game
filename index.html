@@ -23,7 +23,6 @@
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none; /* Prevent scroll on touch devices */
         }
 
         body {
@@ -31,8 +30,8 @@
             font-family: 'Nunito', sans-serif;
             background: linear-gradient(180deg, var(--bg-sky) 0%, #E0F6FF 100%);
             display: flex; flex-direction: column; 
-            height: 100vh;
-            height: 100dvh; /* Adapts to mobile URL bars hiding/showing */
+            height: 100vh; height: 100dvh;
+            touch-action: none; /* Prevents global document zooming/scrolling */
         }
 
         /* --- Chunky, Fun UI --- */
@@ -63,39 +62,37 @@
             transition: all 0.1s cubic-bezier(0.4, 2, 0.2, 1);
         }
 
-        button:active:not(:disabled) {
-            transform: translateY(4px);
-            box-shadow: 0 0 0 #D1D9E6;
-        }
-
+        button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 #D1D9E6; }
         button:hover:not(:disabled) { background-color: #F8F9FA; transform: translateY(-2px); }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .btn-magic { background-color: var(--primary); color: white; box-shadow: 0 4px 0 #D63056; }
         .btn-magic:hover:not(:disabled) { background-color: #FF708D; }
-        
-        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; max-width: 160px;}
+        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; max-width: 160px; }
 
         main { flex: 1; position: relative; }
 
-        #workspace { width: 100%; height: 100%; cursor: grab; overflow: hidden; position: absolute; }
+        #workspace { width: 100%; height: 100%; cursor: grab; overflow: hidden; position: absolute; touch-action: none; }
         #workspace:active { cursor: grabbing; }
-        canvas { display: block; width: 100%; height: 100%; }
+        canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-        /* --- Playful Palette --- */
+        /* --- Scrollable Side Palette Grid --- */
         #palette {
             position: absolute; 
-            bottom: max(20px, env(safe-area-inset-bottom, 20px)); 
-            left: 50%; transform: translateX(-50%);
+            top: 50%; left: 15px; 
+            transform: translateY(-50%);
             background: rgba(255, 255, 255, 0.95);
-            padding: 12px 20px; border-radius: 25px;
+            padding: 15px 12px; border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
-            display: flex; gap: 10px; border: 4px solid white;
-            flex-wrap: wrap; /* wraps on phone */
-            justify-content: center;
-            max-width: 95vw;
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+            border: 4px solid white;
             z-index: 15;
+            max-height: 80vh; 
+            overflow-y: auto; overflow-x: hidden;
+            touch-action: pan-y; /* Allow vertical scrolling smoothly */
+            -ms-overflow-style: none; scrollbar-width: none; /* Hide scrollbars for clean look */
         }
+        #palette::-webkit-scrollbar { display: none; }
 
         .color-swatch {
             width: 45px; height: 45px; border-radius: 12px;
@@ -103,12 +100,13 @@
             box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
             transition: transform 0.2s cubic-bezier(0.4, 2, 0.2, 1);
             position: relative;
+            touch-action: none; /* Block default drag so we pick up perfectly */
         }
         .color-swatch::after {
             content: ''; position: absolute; top: 5px; left: 10px; width: 25px; height: 8px;
             background: rgba(255,255,255,0.5); border-radius: 4px;
         }
-        .color-swatch:hover { transform: scale(1.1) translateY(-5px); }
+        .color-swatch:hover { transform: scale(1.1) translateY(-3px); }
         .color-swatch:active { cursor: grabbing; transform: scale(0.9) translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
 
         /* --- Blueprint/Reference with Glowing Colorful Border --- */
@@ -126,7 +124,7 @@
             background: white; border: 4px solid var(--secondary); border-radius: 16px;
             cursor: pointer; display: none; overflow: hidden; z-index: 20;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            animation: rainbowGlow 4s infinite linear; /* Colorful outline! */
+            animation: rainbowGlow 4s infinite linear;
         }
         #reference-panel::before {
             content: "💡 Blueprint"; display: block; background: var(--secondary);
@@ -143,14 +141,19 @@
 
         /* --- Cute Helper Toast --- */
         #helper {
-            position: absolute; left: 15px; top: 15px;
-            background: white; padding: 12px 15px; border-radius: 20px;
-            font-size: 15px; color: var(--text); border: 3px solid var(--accent);
+            position: absolute; bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: white; padding: 12px 18px; border-radius: 20px;
+            font-size: 16px; color: var(--text); border: 3px solid var(--accent);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); pointer-events: none;
-            display: flex; align-items: center; gap: 10px; animation: float 3s infinite ease-in-out;
-            z-index: 5;
+            display: flex; align-items: center; gap: 10px; z-index: 5;
+            animation: floatHelper 3s infinite ease-in-out;
+            white-space: nowrap;
         }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes floatHelper { 
+            0%, 100% { transform: translate(-50%, 0); } 
+            50% { transform: translate(-50%, -10px); } 
+        }
 
         /* Responsive UI for Phones & Tablets */
         @media (max-width: 768px) {
@@ -158,13 +161,12 @@
             .logo { width: 100%; justify-content: center; font-size: 20px; margin-bottom: 4px; }
             button, select { padding: 8px 10px; font-size: 14px; }
             
-            .color-swatch { width: 38px; height: 38px; border-radius: 10px; }
-            #palette { padding: 8px 12px; gap: 6px; }
+            #palette { left: 10px; padding: 12px 10px; gap: 8px; }
+            .color-swatch { width: 40px; height: 40px; border-radius: 10px; }
             
-            #helper { display: none; }
+            #helper { font-size: 14px; padding: 8px 12px; }
             
-            /* Move panel down slightly so it doesn't cover wrapped header toolbars */
-            #reference-panel { top: 90px; right: 10px; width: 90px; height: 90px; }
+            #reference-panel { top: 95px; right: 10px; width: 90px; height: 90px; }
         }
     </style>
 </head>
@@ -217,14 +219,13 @@
             <canvas id="main-canvas"></canvas>
             
             <div id="helper">
-                <span>👋</span> <strong>Drag a color below or Double-Tap to delete!</strong>
+                <span>👋</span> <strong>Drag a block & Double-Tap to delete!</strong>
             </div>
 
-            <!-- Draggable Palette -->
+            <!-- Scrollable Sidebar Palette -->
             <div id="palette"></div>
         </div>
 
-        <!-- Consultation Thumbnail -->
         <div id="reference-panel">
             <canvas id="ref-canvas"></canvas>
         </div>
@@ -244,38 +245,24 @@
         if (!actx) return;
         const osc = actx.createOscillator();
         const gain = actx.createGain();
-        osc.connect(gain);
-        gain.connect(actx.destination);
+        osc.connect(gain); gain.connect(actx.destination);
         const now = actx.currentTime;
         
         if (type === 'pop') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
-            gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+            gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'pickup') {
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(600, now);
-            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'trash') {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
             osc.start(now); osc.stop(now + 0.2);
         } else if (type === 'magic') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, now);
-            osc.frequency.setValueAtTime(600, now + 0.1);
-            osc.frequency.setValueAtTime(800, now + 0.2);
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1); osc.frequency.setValueAtTime(800, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
             osc.start(now); osc.stop(now + 0.4);
         }
     }
@@ -283,8 +270,6 @@
     // --- State & Constants ---
     const MAX_BLOCKS = 300;
     const BLOCK_SIZE = 50;
-    
-    // Increased to 12 Fun Colors
     const COLORS = [
         '#FF4757', '#FFA502', '#F1C40F', '#2ED573', 
         '#1E90FF', '#3742FA', '#9C88FF', '#FF6B81', 
@@ -295,27 +280,23 @@
     let history = [];
     let historyIndex = -1;
 
-    // Viewport State
     let offsetX = 0, offsetY = 0, zoom = 1.0;
     let isPanning = false, panStartX, panStartY;
 
-    // Drag State
     let isDragging = false;
     let draggedBlock = null; 
     let mouseScreenX = 0, mouseScreenY = 0;
+    let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+    
+    // Tracks isolated pointer hardware locking
+    let activePointerId = null;
 
-    // Double-Tap Logic
-    let lastTapTime = 0;
-    let lastTapX = 0, lastTapY = 0;
-
-    // Particles System
     let particles = [];
     let clouds = [
         {x: 100, y: 50, speed: 0.2, scale: 1}, {x: 400, y: 100, speed: 0.1, scale: 1.5},
         {x: 800, y: 80, speed: 0.3, scale: 0.8}, {x: 1200, y: 150, speed: 0.15, scale: 1.2}
     ];
 
-    // Expanded Templates (24 options)
     const TEMPLATES = {
         castle: [{x:-3,y:0,c:8},{x:-2,y:0,c:8},{x:-1,y:0,c:8},{x:0,y:0,c:8},{x:1,y:0,c:8},{x:2,y:0,c:8},{x:3,y:0,c:8},{x:-3,y:1,c:8},{x:-2,y:1,c:8},{x:-1,y:1,c:8},{x:0,y:1,c:9},{x:1,y:1,c:8},{x:2,y:1,c:8},{x:3,y:1,c:8},{x:-3,y:2,c:8},{x:-2,y:2,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:9},{x:1,y:2,c:8},{x:2,y:2,c:8},{x:3,y:2,c:8},{x:-3,y:3,c:8},{x:-1,y:3,c:8},{x:1,y:3,c:8},{x:3,y:3,c:8},{x:-3,y:4,c:0},{x:3,y:4,c:0}],
         rocket: [{x:-1,y:0,c:1},{x:1,y:0,c:1},{x:-1,y:1,c:8},{x:0,y:1,c:8},{x:1,y:1,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:4},{x:1,y:2,c:8},{x:-2,y:3,c:0},{x:-1,y:3,c:8},{x:0,y:3,c:8},{x:1,y:3,c:8},{x:2,y:3,c:0},{x:-1,y:4,c:8},{x:0,y:4,c:8},{x:1,y:4,c:8},{x:0,y:5,c:0}],
@@ -368,27 +349,39 @@
         offsetX = canvas.width / 2;
         offsetY = canvas.height - 180;
 
-        // Build Palette with 12 Colors
         COLORS.forEach(color => {
             let swatch = document.createElement('div');
             swatch.className = 'color-swatch';
             swatch.style.backgroundColor = color;
             
-            const startDrag = (e) => {
+            // Pointer Event attachment for Palette elements
+            swatch.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
                 initAudio();
+                
                 if(blocks.length >= MAX_BLOCKS) return;
+                
                 isDragging = true;
-                draggedBlock = { color: color, sourceIndex: -1, originalX: 0, originalY: 0 };
                 updateMousePos(e);
+                
+                // Track finger directly under the center of the dragged swatch
+                draggedBlock = { 
+                    color: color, sourceIndex: -1, 
+                    offsetX: BLOCK_SIZE / 2, offsetY: BLOCK_SIZE / 2 
+                };
+                
                 playSound('pickup');
                 document.getElementById('helper').style.display = 'none';
-            };
+                
+                // Lock Target
+                swatch.setPointerCapture(e.pointerId);
+                activePointerId = e.pointerId;
+            });
 
-            swatch.addEventListener('mousedown', startDrag);
-            swatch.addEventListener('touchstart', (e) => { 
-                e.preventDefault(); // crucial to stop phone zooming/scrolling
-                startDrag(e); 
-            }, {passive: false});
+            swatch.addEventListener('pointermove', onPointerMove);
+            swatch.addEventListener('pointerup', onPointerUp);
+            swatch.addEventListener('pointercancel', onPointerUp);
             
             paletteDiv.appendChild(swatch);
         });
@@ -402,7 +395,7 @@
         canvas.height = window.innerHeight;
     }
 
-    // --- History (Undo/Redo) ---
+    // --- State Management ---
     function saveState() {
         history = history.slice(0, historyIndex + 1);
         history.push(JSON.parse(JSON.stringify(blocks)));
@@ -441,11 +434,10 @@
         btnRedo.disabled = historyIndex >= history.length - 1;
     }
 
-    // --- Coordinate Helpers ---
+    // --- Coordinate & System Helpers ---
     function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
     function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
-    // --- Particle System ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
@@ -460,7 +452,7 @@
         for(let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
             p.x += p.vx; p.y += p.vy;
-            p.vy += 0.5; // gravity
+            p.vy += 0.5;
             p.life -= 0.02;
             if(p.life <= 0) { particles.splice(i, 1); continue; }
             ctx.globalAlpha = p.life;
@@ -497,7 +489,7 @@
         ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
     }
 
-    // --- Rendering ---
+    // --- Core Rendering Loop ---
     function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawScenery(ctx);
@@ -506,25 +498,21 @@
         ctx.translate(offsetX, offsetY);
         ctx.scale(zoom, zoom);
 
-        // Draw Blueprint Silhouette
+        // Blueprint Guide
         if (activeTemplate !== 'none') {
             const template = TEMPLATES[activeTemplate];
             ctx.globalAlpha = 0.3;
-            template.forEach(b => {
-                let px = b.x * BLOCK_SIZE;
-                let py = -(b.y * BLOCK_SIZE);
-                drawRoundedBlock(ctx, px, py, COLORS[b.c], false);
-            });
+            template.forEach(b => drawRoundedBlock(ctx, b.x * BLOCK_SIZE, -(b.y * BLOCK_SIZE), COLORS[b.c], false));
             ctx.globalAlpha = 1.0;
         }
 
-        // Draw Placed Blocks
+        // Render sorted placed blocks
         blocks.forEach(b => drawRoundedBlock(ctx, b.x, b.y, b.color, true));
 
-        // Draw Snapping Ghost Preview
+        // Snap Ghost Preview
         if (isDragging && draggedBlock) {
             let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
-            let snap = calculateSnap(worldPos.x, worldPos.y);
+            let snap = calculateSnap(worldPos.x - draggedBlock.offsetX + BLOCK_SIZE/2, worldPos.y - draggedBlock.offsetY + BLOCK_SIZE/2);
             
             ctx.globalAlpha = 0.4;
             drawRoundedBlock(ctx, snap.x, snap.y, draggedBlock.color, true);
@@ -533,11 +521,11 @@
 
         ctx.restore();
 
-        // Draw floating block cursor
+        // Cursor Follower (1:1 Floating Object)
         if (isDragging && draggedBlock) {
             ctx.save();
-            ctx.translate(mouseScreenX - (BLOCK_SIZE*zoom)/2, mouseScreenY - (BLOCK_SIZE*zoom)/2);
-            ctx.scale(zoom*1.1, zoom*1.1); 
+            ctx.translate(mouseScreenX - (draggedBlock.offsetX * zoom), mouseScreenY - (draggedBlock.offsetY * zoom));
+            ctx.scale(zoom, zoom); 
             drawRoundedBlock(ctx, 0, 0, draggedBlock.color, true);
             ctx.restore();
         }
@@ -547,9 +535,7 @@
     }
 
     function drawRoundedBlock(ctx, x, y, color, shiny=true) {
-        const radius = 8;
-        const sz = BLOCK_SIZE;
-        
+        const radius = 8; const sz = BLOCK_SIZE;
         ctx.fillStyle = color;
         ctx.beginPath();
         if(ctx.roundRect) ctx.roundRect(x, y, sz, sz, radius);
@@ -580,24 +566,17 @@
         }
     }
 
-    // --- Interaction Logic ---
+    // --- REFACTORED POINTER INTERACTION LOGIC ---
     function updateMousePos(e) {
-        if (e.touches && e.touches.length > 0) {
-            mouseScreenX = e.touches[0].clientX;
-            mouseScreenY = e.touches[0].clientY;
-        } else if (e.clientX !== undefined) {
-            mouseScreenX = e.clientX;
-            mouseScreenY = e.clientY;
-        }
+        mouseScreenX = e.clientX; 
+        mouseScreenY = e.clientY;
     }
 
-    // IMPROVED Hit detection mapping (Easier to grab ANY part of the block including the nub)
     function getBlockAt(worldX, worldY) {
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
-            // Expanded Y hitbox by 12 to safely cover the block's visual top nub
             if (worldX >= b.x && worldX <= b.x + BLOCK_SIZE && 
-                worldY >= b.y - 12 && worldY <= b.y + BLOCK_SIZE) {
+                worldY >= b.y - 10 && worldY <= b.y + BLOCK_SIZE) {
                 return i;
             }
         }
@@ -609,62 +588,90 @@
     function calculateSnap(worldX, worldY) {
         let snapX = Math.round((worldX - BLOCK_SIZE/2) / BLOCK_SIZE) * BLOCK_SIZE;
         let snapY = Math.round((worldY - BLOCK_SIZE/2) / BLOCK_SIZE) * BLOCK_SIZE;
-
         if (snapY > 0) snapY = 0; 
         while (isOccupied(snapX, snapY)) snapY -= BLOCK_SIZE;
-
         return { x: snapX, y: snapY };
     }
 
-    const onMove = (e) => {
-        if(isDragging || isPanning) e.preventDefault();
+    const onPointerMove = (e) => {
+        if (activePointerId !== e.pointerId) return; // Prevent interference from secondary touches
+        if (isDragging || isPanning) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
         updateMousePos(e);
+        
         if (isPanning) {
             offsetX = mouseScreenX - panStartX;
             offsetY = mouseScreenY - panStartY;
         }
     };
 
-    const onEnd = (e) => {
-        isPanning = false;
+    const onPointerUp = (e) => {
+        if (activePointerId !== e.pointerId) return;
+        e.preventDefault();
+        e.stopPropagation();
+
         if (isDragging && draggedBlock) {
             const rect = canvas.getBoundingClientRect();
+            // Drop within bounds check
             if (mouseScreenX >= rect.left && mouseScreenX <= rect.right &&
                 mouseScreenY >= rect.top && mouseScreenY <= rect.bottom) {
                 
                 let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
-                let snap = calculateSnap(worldPos.x, worldPos.y);
+                
+                // MATH FIX: Revert exact captured offset to find block's true origin
+                let blockOriginX = worldPos.x - draggedBlock.offsetX;
+                let blockOriginY = worldPos.y - draggedBlock.offsetY;
+                
+                let snap = calculateSnap(blockOriginX + BLOCK_SIZE/2, blockOriginY + BLOCK_SIZE/2);
                 
                 blocks.push({ x: snap.x, y: snap.y, color: draggedBlock.color });
-                playSound('pop');
+                // Order physically so layers draw properly
+                blocks.sort((a, b) => b.y !== a.y ? b.y - a.y : a.x - b.x);
                 
+                playSound('pop');
                 let sc = worldToScreen(snap.x + BLOCK_SIZE/2, snap.y + BLOCK_SIZE/2);
                 spawnParticles(sc.x, sc.y, draggedBlock.color);
                 
                 saveState();
             } else if (draggedBlock.sourceIndex !== -1) {
-                // Thrown out of canvas = delete
+                // Thrown out of canvas entirely bounds = delete
                 playSound('trash');
                 spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color);
                 saveState();
             }
-            isDragging = false; draggedBlock = null;
+            isDragging = false; 
+            draggedBlock = null;
         }
+        
+        isPanning = false;
+        
+        // Immediate clean state release
+        try { e.target.releasePointerCapture(e.pointerId); } catch(err) {}
+        activePointerId = null;
     };
 
-    window.addEventListener('mousemove', onMove, {passive: false});
-    window.addEventListener('touchmove', onMove, {passive: false});
-    window.addEventListener('mouseup', onEnd);
-    window.addEventListener('touchend', onEnd);
+    const onCanvasPointerDown = (e) => {
+        // Discard non-primary mouse buttons (except middle/right for panning)
+        if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1 && e.button !== 2) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
 
-    // Canvas Events (Pick up & Double Tap support!)
-    const onCanvasStart = (e) => {
         initAudio();
         updateMousePos(e);
         
-        if (e.button === 2 || e.button === 1 || (e.touches && e.touches.length > 1)) {
-            isPanning = true;
-            panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
+        // TARGET LOCK: Exclusively capture hardware input to the exact block interaction
+        canvas.setPointerCapture(e.pointerId);
+        activePointerId = e.pointerId;
+        
+        // Panning mode condition
+        if (e.button === 2 || e.button === 1 || !e.isPrimary) {
+            isPanning = true; 
+            panStartX = mouseScreenX - offsetX; 
+            panStartY = mouseScreenY - offsetY;
             return;
         }
 
@@ -672,68 +679,71 @@
         let clickedIndex = getBlockAt(worldPos.x, worldPos.y);
         
         let now = Date.now();
-        let dist = Math.sqrt(Math.pow(mouseScreenX - lastTapX, 2) + Math.pow(mouseScreenY - lastTapY, 2));
+        let dist = Math.hypot(mouseScreenX - lastTapX, mouseScreenY - lastTapY);
 
-        // Handle double-tap/double-click delete
-        if (now - lastTapTime < 400 && dist < 30) {
-            if (clickedIndex !== -1) {
-                let b = blocks[clickedIndex];
-                blocks.splice(clickedIndex, 1);
-                playSound('trash');
-                spawnParticles(mouseScreenX, mouseScreenY, b.color, 20);
-                saveState();
-                
-                lastTapTime = 0;
-                isDragging = false;
-                draggedBlock = null;
-                updateUI();
-                return; // End early, don't drag
-            }
+        // Rapid Double Click / Double Tap deletion logic
+        if (now - lastTapTime < 400 && dist < 30 && clickedIndex !== -1) {
+            let b = blocks[clickedIndex];
+            blocks.splice(clickedIndex, 1);
+            playSound('trash');
+            spawnParticles(mouseScreenX, mouseScreenY, b.color, 20);
+            saveState();
+            
+            lastTapTime = 0; isDragging = false; draggedBlock = null;
+            updateUI();
+            
+            canvas.releasePointerCapture(e.pointerId);
+            activePointerId = null;
+            return;
         }
         
         lastTapTime = now;
         lastTapX = mouseScreenX;
         lastTapY = mouseScreenY;
 
-        // Normal Drag functionality
+        // Sensible Dragging (Strict Mapping math locking)
         if (clickedIndex !== -1) {
             isDragging = true;
             let b = blocks[clickedIndex];
-            draggedBlock = { color: b.color, sourceIndex: clickedIndex, originalX: b.x, originalY: b.y };
+            
+            // Lock tracking fixed distance from cursor to block origin
+            let offX = worldPos.x - b.x;
+            let offY = worldPos.y - b.y;
+
+            draggedBlock = { color: b.color, sourceIndex: clickedIndex, offsetX: offX, offsetY: offY };
             blocks.splice(clickedIndex, 1);
             playSound('pickup');
             updateUI(); 
+        } else if (e.pointerType === 'touch') {
+            // Touch panning fallback on empty grid space
+            isPanning = true; 
+            panStartX = mouseScreenX - offsetX; 
+            panStartY = mouseScreenY - offsetY;
         }
     };
 
-    canvas.addEventListener('mousedown', onCanvasStart);
-    canvas.addEventListener('touchstart', (e) => { 
-        if(e.touches.length === 1) e.preventDefault(); 
-        onCanvasStart(e); 
-    }, {passive: false});
+    // Main Canvas Events
+    canvas.addEventListener('pointerdown', onCanvasPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Zooming
+    // Wheel zooming
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const zoomAmount = 0.1;
         const oldZoom = zoom;
-
-        zoom += (e.deltaY < 0) ? zoomAmount : -zoomAmount;
+        zoom += (e.deltaY < 0) ? 0.1 : -0.1;
         zoom = Math.max(0.4, Math.min(zoom, 2.5));
-
-        let mouseWorldX = (mouseScreenX - offsetX) / oldZoom;
-        let mouseWorldY = (mouseScreenY - offsetY) / oldZoom;
-        offsetX = mouseScreenX - (mouseWorldX * zoom);
-        offsetY = mouseScreenY - (mouseWorldY * zoom);
+        offsetX = mouseScreenX - ((mouseScreenX - offsetX) / oldZoom * zoom);
+        offsetY = mouseScreenY - ((mouseScreenY - offsetY) / oldZoom * zoom);
     }, {passive: false});
 
-    // --- UI Controls ---
+    // --- UI Listeners ---
     btnUndo.addEventListener('click', undo);
     btnRedo.addEventListener('click', redo);
     btnReset.addEventListener('click', reset);
     
-    // Fullscreen toggle API
     btnFullscreen.addEventListener('click', () => {
         if (!document.fullscreenElement) {
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
@@ -751,10 +761,8 @@
     zoomOutBtn.addEventListener('click', () => { zoom = Math.max(zoom - 0.2, 0.4); playSound('pickup'); });
 
     templateSelect.addEventListener('change', (e) => {
-        activeTemplate = e.target.value;
-        playSound('magic');
+        activeTemplate = e.target.value; playSound('magic');
         spawnParticles(canvas.width/2, canvas.height/4, '#FFDE59', 20);
-        
         if (activeTemplate === 'none') {
             refPanel.style.display = 'none'; refPanel.classList.remove('expanded');
         } else {
@@ -763,8 +771,7 @@
     });
 
     refPanel.addEventListener('click', () => {
-        playSound('pickup');
-        refPanel.classList.toggle('expanded');
+        playSound('pickup'); refPanel.classList.toggle('expanded');
         setTimeout(drawThumbnail, 400);
     });
 
@@ -772,26 +779,22 @@
         if (activeTemplate === 'none') return;
         refCanvas.width = refPanel.clientWidth;
         refCanvas.height = refPanel.clientHeight - 22; 
-
         refCtx.clearRect(0, 0, refCanvas.width, refCanvas.height);
-        const template = TEMPLATES[activeTemplate];
         
+        const template = TEMPLATES[activeTemplate];
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         template.forEach(b => {
             if(b.x < minX) minX = b.x; if(b.x > maxX) maxX = b.x;
             if(b.y < minY) minY = b.y; if(b.y > maxY) maxY = b.y;
         });
 
-        let widthUnits = (maxX - minX + 1), heightUnits = (maxY - minY + 1);
-        let scale = Math.min((refCanvas.width - 20) / (widthUnits * BLOCK_SIZE), (refCanvas.height - 20) / (heightUnits * BLOCK_SIZE));
+        let wUnits = (maxX - minX + 1), hUnits = (maxY - minY + 1);
+        let scale = Math.min((refCanvas.width - 20) / (wUnits * BLOCK_SIZE), (refCanvas.height - 20) / (hUnits * BLOCK_SIZE));
 
-        refCtx.save();
-        refCtx.translate(refCanvas.width / 2, refCanvas.height / 2);
-        refCtx.scale(scale, scale);
-        
-        let centerX = ((minX + maxX) / 2) * BLOCK_SIZE + (BLOCK_SIZE/2);
-        let centerY = -((minY + maxY) / 2) * BLOCK_SIZE - (BLOCK_SIZE/2);
-        refCtx.translate(-centerX, -centerY);
+        refCtx.save(); refCtx.translate(refCanvas.width / 2, refCanvas.height / 2); refCtx.scale(scale, scale);
+        let cx = ((minX + maxX) / 2) * BLOCK_SIZE + (BLOCK_SIZE/2);
+        let cy = -((minY + maxY) / 2) * BLOCK_SIZE - (BLOCK_SIZE/2);
+        refCtx.translate(-cx, -cy);
 
         template.forEach(b => drawRoundedBlock(refCtx, b.x * BLOCK_SIZE, -(b.y * BLOCK_SIZE), COLORS[b.c], true));
         refCtx.restore();
