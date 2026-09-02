@@ -2,14 +2,12 @@
 <html lang="en">
 <head>
 <title>✨ Magic Block Builder ✨</title>
-<!-- Add these 3 lines for Google: -->
 <meta name="description" content="Play the Magic Block Builder! A fun, interactive, and colorful 2D building block game for kids and adults. Free online game.">
 <meta name="keywords" content="building blocks, kids game, free online game, magic blocks, educational web game, 2D builder">
 <meta name="author" content="Ian Luyali">
 <meta name="google-site-verification" content="cLh6CFEoeRBWJQhp_lqHKj8YDiwkLcIpzSe5Y3OO7kA" />
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>✨ Magic Block Builder ✨</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700&display=swap');
 
@@ -32,13 +30,15 @@
             margin: 0; padding: 0; overflow: hidden;
             font-family: 'Nunito', sans-serif;
             background: linear-gradient(180deg, var(--bg-sky) 0%, #E0F6FF 100%);
-            display: flex; flex-direction: column; height: 100vh;
+            display: flex; flex-direction: column; 
+            height: 100vh;
+            height: 100dvh; /* Adapts to mobile URL bars hiding/showing */
         }
 
         /* --- Chunky, Fun UI --- */
         header {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
             display: flex; align-items: center; justify-content: space-between;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             border-bottom: 4px solid white;
@@ -48,14 +48,14 @@
         .logo {
             font-family: 'Fredoka One', cursive;
             font-size: 24px; color: var(--primary);
-            text-shadow: 2px 2px 0px white, 4px 4px 0px rgba(0,0,0,0.1);
+            text-shadow: 2px 2px 0px white, 3px 3px 0px rgba(0,0,0,0.1);
             display: flex; align-items: center; gap: 10px;
         }
 
-        .toolbar-group { display: flex; align-items: center; gap: 12px; }
+        .toolbar-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
         button, select {
-            padding: 10px 15px; font-size: 18px;
+            padding: 10px 14px; font-size: 16px;
             border: none; border-radius: 20px;
             background-color: white; color: var(--text);
             cursor: pointer; font-weight: bold; font-family: 'Nunito', sans-serif;
@@ -74,7 +74,7 @@
         .btn-magic { background-color: var(--primary); color: white; box-shadow: 0 4px 0 #D63056; }
         .btn-magic:hover:not(:disabled) { background-color: #FF708D; }
         
-        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; }
+        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; max-width: 160px;}
 
         main { flex: 1; position: relative; }
 
@@ -84,64 +84,87 @@
 
         /* --- Playful Palette --- */
         #palette {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            position: absolute; 
+            bottom: max(20px, env(safe-area-inset-bottom, 20px)); 
+            left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
-            padding: 15px 25px; border-radius: 30px;
+            padding: 12px 20px; border-radius: 25px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
-            display: flex; gap: 15px; border: 4px solid white;
+            display: flex; gap: 10px; border: 4px solid white;
+            flex-wrap: wrap; /* wraps on phone */
+            justify-content: center;
+            max-width: 95vw;
+            z-index: 15;
         }
 
         .color-swatch {
-            width: 50px; height: 50px; border-radius: 15px;
+            width: 45px; height: 45px; border-radius: 12px;
             cursor: grab;
             box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
             transition: transform 0.2s cubic-bezier(0.4, 2, 0.2, 1);
             position: relative;
         }
         .color-swatch::after {
-            content: ''; position: absolute; top: 5px; left: 10px; width: 30px; height: 10px;
-            background: rgba(255,255,255,0.5); border-radius: 5px;
+            content: ''; position: absolute; top: 5px; left: 10px; width: 25px; height: 8px;
+            background: rgba(255,255,255,0.5); border-radius: 4px;
         }
         .color-swatch:hover { transform: scale(1.1) translateY(-5px); }
         .color-swatch:active { cursor: grabbing; transform: scale(0.9) translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
 
-        /* --- Blueprint/Reference --- */
+        /* --- Blueprint/Reference with Glowing Colorful Border --- */
+        @keyframes rainbowGlow {
+            0% { border-color: #FF5E7E; box-shadow: 0 8px 25px rgba(255, 94, 126, 0.5); }
+            25% { border-color: #FFDE59; box-shadow: 0 8px 25px rgba(255, 222, 89, 0.5); }
+            50% { border-color: #38B6FF; box-shadow: 0 8px 25px rgba(56, 182, 255, 0.5); }
+            75% { border-color: #2ED573; box-shadow: 0 8px 25px rgba(46, 213, 115, 0.5); }
+            100% { border-color: #FF5E7E; box-shadow: 0 8px 25px rgba(255, 94, 126, 0.5); }
+        }
+
         #reference-panel {
-            position: absolute; top: 20px; right: 20px;
-            width: 130px; height: 130px;
+            position: absolute; top: 15px; right: 15px;
+            width: 120px; height: 120px;
             background: white; border: 4px solid var(--secondary); border-radius: 16px;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
             cursor: pointer; display: none; overflow: hidden; z-index: 20;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: rainbowGlow 4s infinite linear; /* Colorful outline! */
         }
         #reference-panel::before {
             content: "💡 Blueprint"; display: block; background: var(--secondary);
-            color: white; font-size: 12px; text-align: center; padding: 5px 0; font-weight: bold;
+            color: white; font-size: 11px; text-align: center; padding: 4px 0; font-weight: bold;
         }
-        #ref-canvas { width: 100%; height: calc(100% - 25px); background: #f8fbff; }
+        #ref-canvas { width: 100%; height: calc(100% - 22px); background: #f8fbff; }
 
         #reference-panel.expanded {
             top: 50%; right: 50%; transform: translate(50%, -50%);
-            width: 80vmin; height: 80vmin; border-width: 8px;
-            box-shadow: 0 0 0 2000px rgba(0,0,0,0.5);
+            width: 85vmin; height: 85vmin; border-width: 8px;
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.6) !important;
+            animation: none; border-color: white;
         }
 
         /* --- Cute Helper Toast --- */
         #helper {
-            position: absolute; left: 20px; top: 20px;
-            background: white; padding: 15px; border-radius: 20px;
-            font-size: 16px; color: var(--text); border: 3px solid var(--accent);
+            position: absolute; left: 15px; top: 15px;
+            background: white; padding: 12px 15px; border-radius: 20px;
+            font-size: 15px; color: var(--text); border: 3px solid var(--accent);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); pointer-events: none;
             display: flex; align-items: center; gap: 10px; animation: float 3s infinite ease-in-out;
+            z-index: 5;
         }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-        /* Mobile tweaks */
+        /* Responsive UI for Phones & Tablets */
         @media (max-width: 768px) {
-            header { flex-wrap: wrap; justify-content: center; gap: 10px; padding: 10px; }
-            .color-swatch { width: 40px; height: 40px; }
-            #palette { padding: 10px; bottom: 20px; gap: 8px; }
-            #helper { display: none; } /* Hide text on small screens to save space */
+            header { flex-wrap: wrap; justify-content: space-evenly; gap: 8px; padding: 8px; }
+            .logo { width: 100%; justify-content: center; font-size: 20px; margin-bottom: 4px; }
+            button, select { padding: 8px 10px; font-size: 14px; }
+            
+            .color-swatch { width: 38px; height: 38px; border-radius: 10px; }
+            #palette { padding: 8px 12px; gap: 6px; }
+            
+            #helper { display: none; }
+            
+            /* Move panel down slightly so it doesn't cover wrapped header toolbars */
+            #reference-panel { top: 90px; right: 10px; width: 90px; height: 90px; }
         }
     </style>
 </head>
@@ -157,15 +180,35 @@
                 <option value="rocket">🚀 Rocket</option>
                 <option value="dino">🦕 Dinosaur</option>
                 <option value="flower">🌸 Flower</option>
+                <option value="tree">🌳 Tree</option>
+                <option value="car">🚗 Car</option>
+                <option value="robot">🤖 Robot</option>
+                <option value="boat">⛵ Boat</option>
+                <option value="house">🏠 House</option>
+                <option value="sword">🗡️ Sword</option>
+                <option value="heart">❤️ Heart</option>
+                <option value="star">⭐ Star</option>
+                <option value="face">😀 Face</option>
+                <option value="alien">👽 Alien</option>
+                <option value="train">🚂 Train</option>
+                <option value="duck">🦆 Duck</option>
+                <option value="plane">✈️ Plane</option>
+                <option value="crown">👑 Crown</option>
+                <option value="butterfly">🦋 Butterfly</option>
+                <option value="cupcake">🧁 Cupcake</option>
+                <option value="apple">🍎 Apple</option>
+                <option value="fish">🐟 Fish</option>
+                <option value="spider">🕷️ Spider</option>
             </select>
             <button id="btn-zoom-out" title="Zoom Out">🔍-</button>
             <button id="btn-zoom-in" title="Zoom In">🔍+</button>
+            <button id="btn-fullscreen" title="Full Screen">📺</button>
         </div>
         
         <div class="toolbar-group">
             <button id="btn-undo" disabled title="Undo">↩️</button>
             <button id="btn-redo" disabled title="Redo">↪️</button>
-            <button id="btn-reset" class="btn-magic">🗑️ Clear All</button>
+            <button id="btn-reset" class="btn-magic" title="Clear All">🗑️ Clear</button>
         </div>
     </header>
 
@@ -174,7 +217,7 @@
             <canvas id="main-canvas"></canvas>
             
             <div id="helper">
-                <span>👋</span> <strong>Drag a color from the bottom to start!</strong>
+                <span>👋</span> <strong>Drag a color below or Double-Tap to delete!</strong>
             </div>
 
             <!-- Draggable Palette -->
@@ -203,31 +246,30 @@
         const gain = actx.createGain();
         osc.connect(gain);
         gain.connect(actx.destination);
-
         const now = actx.currentTime;
         
-        if (type === 'pop') { // Placing a block
+        if (type === 'pop') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(400, now);
             osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'pickup') { // Grabbing a block
+        } else if (type === 'pickup') {
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(600, now);
             osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
             gain.gain.setValueAtTime(0.2, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
-        } else if (type === 'trash') { // Deleting
+        } else if (type === 'trash') {
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(200, now);
             osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
             gain.gain.setValueAtTime(0.2, now);
             gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
             osc.start(now); osc.stop(now + 0.2);
-        } else if (type === 'magic') { // Reset/Change Template
+        } else if (type === 'magic') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(400, now);
             osc.frequency.setValueAtTime(600, now + 0.1);
@@ -241,8 +283,13 @@
     // --- State & Constants ---
     const MAX_BLOCKS = 300;
     const BLOCK_SIZE = 50;
-    // Fun Colors: Red, Orange, Yellow, Lime, Cyan, Blue, Purple, Pink, White, Black
-    const COLORS = ['#FF4757', '#FFA502', '#F1C40F', '#2ED573', '#1E90FF', '#3742FA', '#9C88FF', '#FF6B81', '#FFFFFF', '#2F3542'];
+    
+    // Increased to 12 Fun Colors
+    const COLORS = [
+        '#FF4757', '#FFA502', '#F1C40F', '#2ED573', 
+        '#1E90FF', '#3742FA', '#9C88FF', '#FF6B81', 
+        '#FFFFFF', '#2F3542', '#00CED1', '#8B4513'
+    ];
     
     let blocks = []; 
     let history = [];
@@ -257,6 +304,10 @@
     let draggedBlock = null; 
     let mouseScreenX = 0, mouseScreenY = 0;
 
+    // Double-Tap Logic
+    let lastTapTime = 0;
+    let lastTapX = 0, lastTapY = 0;
+
     // Particles System
     let particles = [];
     let clouds = [
@@ -264,38 +315,31 @@
         {x: 800, y: 80, speed: 0.3, scale: 0.8}, {x: 1200, y: 150, speed: 0.15, scale: 1.2}
     ];
 
-    // Fun Blueprints
+    // Expanded Templates (24 options)
     const TEMPLATES = {
-        castle: [
-            {x:-3,y:0,c:8},{x:-2,y:0,c:8},{x:-1,y:0,c:8},{x:0,y:0,c:8},{x:1,y:0,c:8},{x:2,y:0,c:8},{x:3,y:0,c:8},
-            {x:-3,y:1,c:8},{x:-2,y:1,c:8},{x:-1,y:1,c:8},{x:0,y:1,c:9},{x:1,y:1,c:8},{x:2,y:1,c:8},{x:3,y:1,c:8},
-            {x:-3,y:2,c:8},{x:-2,y:2,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:9},{x:1,y:2,c:8},{x:2,y:2,c:8},{x:3,y:2,c:8},
-            {x:-3,y:3,c:8},{x:-1,y:3,c:8},{x:1,y:3,c:8},{x:3,y:3,c:8}, // Battlements
-            {x:-3,y:4,c:0},{x:3,y:4,c:0} // Flags
-        ],
-        rocket: [
-            {x:-1,y:0,c:1},{x:1,y:0,c:1}, // Thrusters
-            {x:-1,y:1,c:8},{x:0,y:1,c:8},{x:1,y:1,c:8},
-            {x:-1,y:2,c:8},{x:0,y:2,c:4},{x:1,y:2,c:8}, // Window
-            {x:-2,y:3,c:0},{x:-1,y:3,c:8},{x:0,y:3,c:8},{x:1,y:3,c:8},{x:2,y:3,c:0}, // Wings
-            {x:-1,y:4,c:8},{x:0,y:4,c:8},{x:1,y:4,c:8},
-            {x:0,y:5,c:0} // Tip
-        ],
-        dino: [
-            {x:-1,y:0,c:3},{x:1,y:0,c:3},{x:2,y:0,c:3}, // Feet
-            {x:-1,y:1,c:3},{x:1,y:1,c:3},{x:2,y:1,c:3},
-            {x:-2,y:2,c:3},{x:-1,y:2,c:3},{x:0,y:2,c:3},{x:1,y:2,c:3},{x:2,y:2,c:3},{x:3,y:2,c:3}, // Tail to body
-            {x:-3,y:3,c:3},{x:-2,y:3,c:3},{x:-1,y:3,c:3},{x:0,y:3,c:3},{x:1,y:3,c:3},
-            {x:-1,y:4,c:3},{x:0,y:4,c:3}, // Neck
-            {x:-1,y:5,c:3},{x:0,y:5,c:3},{x:1,y:5,c:3}, // Head
-            {x:0,y:6,c:9} // Eye
-        ],
-        flower: [
-            {x:0,y:0,c:3},{x:0,y:1,c:3},{x:0,y:2,c:3}, // Stem
-            {x:-1,y:1,c:3},{x:1,y:2,c:3}, // Leaves
-            {x:0,y:3,c:2}, // Center
-            {x:0,y:4,c:7},{x:0,y:2,c:7},{x:-1,y:3,c:7},{x:1,y:3,c:7} // Petals
-        ]
+        castle: [{x:-3,y:0,c:8},{x:-2,y:0,c:8},{x:-1,y:0,c:8},{x:0,y:0,c:8},{x:1,y:0,c:8},{x:2,y:0,c:8},{x:3,y:0,c:8},{x:-3,y:1,c:8},{x:-2,y:1,c:8},{x:-1,y:1,c:8},{x:0,y:1,c:9},{x:1,y:1,c:8},{x:2,y:1,c:8},{x:3,y:1,c:8},{x:-3,y:2,c:8},{x:-2,y:2,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:9},{x:1,y:2,c:8},{x:2,y:2,c:8},{x:3,y:2,c:8},{x:-3,y:3,c:8},{x:-1,y:3,c:8},{x:1,y:3,c:8},{x:3,y:3,c:8},{x:-3,y:4,c:0},{x:3,y:4,c:0}],
+        rocket: [{x:-1,y:0,c:1},{x:1,y:0,c:1},{x:-1,y:1,c:8},{x:0,y:1,c:8},{x:1,y:1,c:8},{x:-1,y:2,c:8},{x:0,y:2,c:4},{x:1,y:2,c:8},{x:-2,y:3,c:0},{x:-1,y:3,c:8},{x:0,y:3,c:8},{x:1,y:3,c:8},{x:2,y:3,c:0},{x:-1,y:4,c:8},{x:0,y:4,c:8},{x:1,y:4,c:8},{x:0,y:5,c:0}],
+        dino: [{x:-1,y:0,c:3},{x:1,y:0,c:3},{x:2,y:0,c:3},{x:-1,y:1,c:3},{x:1,y:1,c:3},{x:2,y:1,c:3},{x:-2,y:2,c:3},{x:-1,y:2,c:3},{x:0,y:2,c:3},{x:1,y:2,c:3},{x:2,y:2,c:3},{x:3,y:2,c:3},{x:-3,y:3,c:3},{x:-2,y:3,c:3},{x:-1,y:3,c:3},{x:0,y:3,c:3},{x:1,y:3,c:3},{x:-1,y:4,c:3},{x:0,y:4,c:3},{x:-1,y:5,c:3},{x:0,y:5,c:3},{x:1,y:5,c:3},{x:0,y:6,c:9}],
+        flower: [{x:0,y:0,c:3},{x:0,y:1,c:3},{x:0,y:2,c:3},{x:-1,y:1,c:3},{x:1,y:2,c:3},{x:0,y:3,c:2},{x:0,y:4,c:7},{x:0,y:2,c:7},{x:-1,y:3,c:7},{x:1,y:3,c:7}],
+        tree: [ {x:0,y:0,c:11}, {x:0,y:1,c:11}, {x:-1,y:2,c:3}, {x:0,y:2,c:3}, {x:1,y:2,c:3}, {x:-1,y:3,c:3}, {x:0,y:3,c:3}, {x:1,y:3,c:3}, {x:0,y:4,c:3} ],
+        car: [ {x:-2,y:0,c:9}, {x:1,y:0,c:9}, {x:-3,y:1,c:0}, {x:-2,y:1,c:0}, {x:-1,y:1,c:0}, {x:0,y:1,c:0}, {x:1,y:1,c:0}, {x:2,y:1,c:0}, {x:-1,y:2,c:4}, {x:0,y:2,c:0}, {x:1,y:2,c:4} ],
+        robot: [ {x:-1,y:0,c:9}, {x:1,y:0,c:9}, {x:-1,y:1,c:8}, {x:0,y:1,c:8}, {x:1,y:1,c:8}, {x:-2,y:2,c:5}, {x:-1,y:2,c:8}, {x:0,y:2,c:8}, {x:1,y:2,c:8}, {x:2,y:2,c:5}, {x:-1,y:3,c:8}, {x:0,y:3,c:8}, {x:1,y:3,c:8}, {x:-1,y:4,c:0}, {x:1,y:4,c:0}, {x:0,y:5,c:8} ],
+        boat: [ {x:-2,y:0,c:11}, {x:-1,y:0,c:11}, {x:0,y:0,c:11}, {x:1,y:0,c:11}, {x:2,y:0,c:11}, {x:-1,y:1,c:11}, {x:0,y:1,c:11}, {x:1,y:1,c:11}, {x:0,y:2,c:8}, {x:1,y:2,c:8}, {x:0,y:3,c:8}, {x:1,y:3,c:8}, {x:0,y:4,c:8} ],
+        house: [ {x:-1,y:0,c:2}, {x:0,y:0,c:11}, {x:1,y:0,c:2}, {x:-1,y:1,c:2}, {x:0,y:1,c:11}, {x:1,y:1,c:2}, {x:-2,y:2,c:0}, {x:-1,y:2,c:0}, {x:0,y:2,c:0}, {x:1,y:2,c:0}, {x:2,y:2,c:0}, {x:-1,y:3,c:0}, {x:0,y:3,c:0}, {x:1,y:3,c:0}, {x:0,y:4,c:0} ],
+        sword: [ {x:0,y:0,c:11}, {x:0,y:1,c:11}, {x:-1,y:2,c:2}, {x:0,y:2,c:2}, {x:1,y:2,c:2}, {x:0,y:3,c:8}, {x:0,y:4,c:8}, {x:0,y:5,c:8}, {x:0,y:6,c:8}, {x:0,y:7,c:8} ],
+        heart: [ {x:0,y:0,c:0}, {x:-1,y:1,c:0}, {x:0,y:1,c:0}, {x:1,y:1,c:0}, {x:-2,y:2,c:0}, {x:-1,y:2,c:0}, {x:0,y:2,c:0}, {x:1,y:2,c:0}, {x:2,y:2,c:0}, {x:-2,y:3,c:0}, {x:-1,y:3,c:0}, {x:1,y:3,c:0}, {x:2,y:3,c:0} ],
+        star: [ {x:-1,y:0,c:2}, {x:1,y:0,c:2}, {x:-2,y:1,c:2}, {x:0,y:1,c:2}, {x:2,y:1,c:2}, {x:-3,y:2,c:2}, {x:-1,y:2,c:2}, {x:1,y:2,c:2}, {x:3,y:2,c:2}, {x:-2,y:3,c:2}, {x:0,y:3,c:2}, {x:2,y:3,c:2}, {x:0,y:4,c:2} ],
+        face: [ {x:0,y:0,c:1}, {x:-1,y:1,c:1}, {x:0,y:1,c:0}, {x:1,y:1,c:1}, {x:-2,y:2,c:1}, {x:-1,y:2,c:1}, {x:0,y:2,c:1}, {x:1,y:2,c:1}, {x:2,y:2,c:1}, {x:-1,y:3,c:5}, {x:0,y:3,c:1}, {x:1,y:3,c:5}, {x:0,y:4,c:1} ],
+        alien: [ {x:-1,y:0,c:3}, {x:1,y:0,c:3}, {x:-2,y:1,c:3}, {x:-1,y:1,c:3}, {x:0,y:1,c:3}, {x:1,y:1,c:3}, {x:2,y:1,c:3}, {x:-2,y:2,c:9}, {x:-1,y:2,c:3}, {x:0,y:2,c:3}, {x:1,y:2,c:3}, {x:2,y:2,c:9}, {x:-1,y:3,c:3}, {x:0,y:3,c:3}, {x:1,y:3,c:3}, {x:0,y:4,c:3} ],
+        train: [ {x:-2,y:0,c:9}, {x:-1,y:0,c:9}, {x:1,y:0,c:9}, {x:2,y:0,c:9}, {x:-2,y:1,c:0}, {x:-1,y:1,c:0}, {x:0,y:1,c:0}, {x:1,y:1,c:0}, {x:2,y:1,c:0}, {x:-1,y:2,c:0}, {x:0,y:2,c:0}, {x:1,y:2,c:5}, {x:2,y:2,c:5}, {x:-1,y:3,c:0}, {x:1,y:3,c:5}, {x:2,y:3,c:5} ],
+        duck: [ {x:-1,y:0,c:1}, {x:0,y:0,c:2}, {x:1,y:0,c:2}, {x:-2,y:1,c:2}, {x:-1,y:1,c:2}, {x:0,y:1,c:2}, {x:1,y:1,c:2}, {x:-1,y:2,c:2}, {x:1,y:2,c:2}, {x:1,y:3,c:2}, {x:2,y:3,c:1}, {x:1,y:4,c:2} ],
+        plane: [ {x:0,y:0,c:8}, {x:1,y:0,c:8}, {x:-1,y:1,c:8}, {x:0,y:1,c:8}, {x:1,y:1,c:8}, {x:2,y:1,c:8}, {x:0,y:2,c:5}, {x:1,y:2,c:8}, {x:2,y:2,c:5}, {x:-2,y:3,c:8}, {x:-1,y:3,c:8}, {x:0,y:3,c:8}, {x:1,y:3,c:8} ],
+        crown: [ {x:-2,y:0,c:2}, {x:-1,y:0,c:2}, {x:0,y:0,c:2}, {x:1,y:0,c:2}, {x:2,y:0,c:2}, {x:-2,y:1,c:2}, {x:0,y:1,c:0}, {x:2,y:1,c:2}, {x:-2,y:2,c:2}, {x:0,y:2,c:2}, {x:2,y:2,c:2} ],
+        butterfly: [ {x:-1,y:0,c:7}, {x:1,y:0,c:7}, {x:-2,y:1,c:7}, {x:-1,y:1,c:6}, {x:0,y:1,c:9}, {x:1,y:1,c:6}, {x:2,y:1,c:7}, {x:-2,y:2,c:7}, {x:-1,y:2,c:6}, {x:0,y:2,c:9}, {x:1,y:2,c:6}, {x:2,y:2,c:7}, {x:-1,y:3,c:7}, {x:1,y:3,c:7} ],
+        cupcake: [ {x:-1,y:0,c:11}, {x:0,y:0,c:11}, {x:1,y:0,c:11}, {x:-1,y:1,c:11}, {x:0,y:1,c:11}, {x:1,y:1,c:11}, {x:-2,y:2,c:7}, {x:-1,y:2,c:7}, {x:0,y:2,c:7}, {x:1,y:2,c:7}, {x:2,y:2,c:7}, {x:-1,y:3,c:7}, {x:0,y:3,c:7}, {x:1,y:3,c:7}, {x:0,y:4,c:0} ],
+        apple: [ {x:0,y:0,c:0}, {x:-1,y:1,c:0}, {x:0,y:1,c:0}, {x:1,y:1,c:0}, {x:-1,y:2,c:0}, {x:0,y:2,c:0}, {x:1,y:2,c:0}, {x:-1,y:3,c:0}, {x:1,y:3,c:0}, {x:0,y:4,c:11}, {x:1,y:4,c:3} ],
+        fish: [ {x:0,y:0,c:1}, {x:1,y:0,c:1}, {x:-1,y:1,c:1}, {x:0,y:1,c:1}, {x:1,y:1,c:1}, {x:2,y:1,c:1}, {x:-2,y:2,c:1}, {x:-1,y:2,c:1}, {x:0,y:2,c:1}, {x:1,y:2,c:8}, {x:-1,y:3,c:1}, {x:0,y:3,c:1}, {x:1,y:3,c:1} ],
+        spider: [ {x:-1,y:0,c:9}, {x:1,y:0,c:9}, {x:-2,y:1,c:9}, {x:0,y:1,c:9}, {x:2,y:1,c:9}, {x:-1,y:2,c:9}, {x:0,y:2,c:9}, {x:1,y:2,c:9}, {x:-1,y:3,c:0}, {x:1,y:3,c:0} ]
     };
     let activeTemplate = 'none';
 
@@ -314,6 +358,7 @@
     const btnReset = document.getElementById('btn-reset');
     const zoomInBtn = document.getElementById('btn-zoom-in');
     const zoomOutBtn = document.getElementById('btn-zoom-out');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
 
     // --- Initialization ---
     function init() {
@@ -321,33 +366,35 @@
         window.addEventListener('resize', resizeCanvas);
         
         offsetX = canvas.width / 2;
-        offsetY = canvas.height - 180; // Ground near bottom
+        offsetY = canvas.height - 180;
 
-        // Build Palette
+        // Build Palette with 12 Colors
         COLORS.forEach(color => {
             let swatch = document.createElement('div');
             swatch.className = 'color-swatch';
             swatch.style.backgroundColor = color;
             
-            // Interaction support (Mouse & Touch)
             const startDrag = (e) => {
-                initAudio(); // Unlock audio on first interaction
+                initAudio();
                 if(blocks.length >= MAX_BLOCKS) return;
                 isDragging = true;
-                draggedBlock = { color: color, sourceIndex: -1 };
+                draggedBlock = { color: color, sourceIndex: -1, originalX: 0, originalY: 0 };
                 updateMousePos(e);
                 playSound('pickup');
-                document.getElementById('helper').style.display = 'none'; // hide helper
+                document.getElementById('helper').style.display = 'none';
             };
 
             swatch.addEventListener('mousedown', startDrag);
-            swatch.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e); }, {passive: false});
+            swatch.addEventListener('touchstart', (e) => { 
+                e.preventDefault(); // crucial to stop phone zooming/scrolling
+                startDrag(e); 
+            }, {passive: false});
             
             paletteDiv.appendChild(swatch);
         });
 
         saveState(); 
-        requestAnimationFrame(gameLoop); // Start animation loop
+        requestAnimationFrame(gameLoop);
     }
 
     function resizeCanvas() {
@@ -395,23 +442,16 @@
     }
 
     // --- Coordinate Helpers ---
-    function screenToWorld(x, y) {
-        return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom };
-    }
-
-    function worldToScreen(x, y) {
-        return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY };
-    }
+    function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
+    function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
     // --- Particle System ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
                 x: screenX, y: screenY,
-                vx: (Math.random() - 0.5) * 15,
-                vy: (Math.random() - 1) * 15,
-                life: 1.0, color: color,
-                size: Math.random() * 8 + 4
+                vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 1) * 15,
+                life: 1.0, color: color, size: Math.random() * 8 + 4
             });
         }
     }
@@ -422,9 +462,7 @@
             p.x += p.vx; p.y += p.vy;
             p.vy += 0.5; // gravity
             p.life -= 0.02;
-            
             if(p.life <= 0) { particles.splice(i, 1); continue; }
-            
             ctx.globalAlpha = p.life;
             ctx.fillStyle = p.color;
             ctx.beginPath();
@@ -435,7 +473,6 @@
     }
 
     function drawScenery(ctx) {
-        // Clouds
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
         clouds.forEach(c => {
             c.x += c.speed;
@@ -447,7 +484,6 @@
             ctx.fill();
         });
 
-        // Rolling Hills Ground
         ctx.fillStyle = '#78E08F';
         ctx.beginPath();
         ctx.moveTo(0, offsetY + BLOCK_SIZE);
@@ -457,7 +493,6 @@
         ctx.lineTo(0, canvas.height);
         ctx.fill();
 
-        // Ground highlight
         ctx.fillStyle = '#B8E994';
         ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
     }
@@ -465,7 +500,6 @@
     // --- Rendering ---
     function gameLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         drawScenery(ctx);
         
         ctx.save();
@@ -485,9 +519,7 @@
         }
 
         // Draw Placed Blocks
-        blocks.forEach(b => {
-            drawRoundedBlock(ctx, b.x, b.y, b.color, true);
-        });
+        blocks.forEach(b => drawRoundedBlock(ctx, b.x, b.y, b.color, true));
 
         // Draw Snapping Ghost Preview
         if (isDragging && draggedBlock) {
@@ -501,17 +533,16 @@
 
         ctx.restore();
 
-        // Draw floating block strictly under pointer
+        // Draw floating block cursor
         if (isDragging && draggedBlock) {
             ctx.save();
             ctx.translate(mouseScreenX - (BLOCK_SIZE*zoom)/2, mouseScreenY - (BLOCK_SIZE*zoom)/2);
-            ctx.scale(zoom*1.1, zoom*1.1); // slightly larger when held
+            ctx.scale(zoom*1.1, zoom*1.1); 
             drawRoundedBlock(ctx, 0, 0, draggedBlock.color, true);
             ctx.restore();
         }
 
         updateAndDrawParticles(ctx);
-
         requestAnimationFrame(gameLoop);
     }
 
@@ -519,38 +550,32 @@
         const radius = 8;
         const sz = BLOCK_SIZE;
         
-        // Base Color
         ctx.fillStyle = color;
         ctx.beginPath();
-        if(ctx.roundRect) {
-            ctx.roundRect(x, y, sz, sz, radius);
-        } else {
-            ctx.rect(x, y, sz, sz); // Fallback
-        }
+        if(ctx.roundRect) ctx.roundRect(x, y, sz, sz, radius);
+        else ctx.rect(x, y, sz, sz);
         ctx.fill();
         
         if (shiny) {
-            // Top Light
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
             ctx.beginPath();
             if(ctx.roundRect) ctx.roundRect(x, y, sz, 10, [radius, radius, 0, 0]);
             else ctx.rect(x, y, sz, 10);
             ctx.fill();
             
-            // Bottom Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.15)';
             ctx.beginPath();
             if(ctx.roundRect) ctx.roundRect(x, y + sz - 10, sz, 10, [0, 0, radius, radius]);
             else ctx.rect(x, y + sz - 10, sz, 10);
             ctx.fill();
             
-            // Lego Nub (Top)
             ctx.fillStyle = color;
             ctx.beginPath();
             if(ctx.roundRect) ctx.roundRect(x + 12, y - 8, sz - 24, 12, 4);
             else ctx.rect(x + 12, y - 8, sz - 24, 12);
             ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.4)'; // Nub shine
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.4)'; 
             ctx.fillRect(x + 15, y - 6, sz - 30, 3);
         }
     }
@@ -560,25 +585,26 @@
         if (e.touches && e.touches.length > 0) {
             mouseScreenX = e.touches[0].clientX;
             mouseScreenY = e.touches[0].clientY;
-        } else {
+        } else if (e.clientX !== undefined) {
             mouseScreenX = e.clientX;
             mouseScreenY = e.clientY;
         }
     }
 
+    // IMPROVED Hit detection mapping (Easier to grab ANY part of the block including the nub)
     function getBlockAt(worldX, worldY) {
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
-            if (worldX >= b.x && worldX < b.x + BLOCK_SIZE && worldY >= b.y && worldY < b.y + BLOCK_SIZE) {
+            // Expanded Y hitbox by 12 to safely cover the block's visual top nub
+            if (worldX >= b.x && worldX <= b.x + BLOCK_SIZE && 
+                worldY >= b.y - 12 && worldY <= b.y + BLOCK_SIZE) {
                 return i;
             }
         }
         return -1;
     }
 
-    function isOccupied(x, y) {
-        return blocks.some(b => b.x === x && b.y === y);
-    }
+    function isOccupied(x, y) { return blocks.some(b => b.x === x && b.y === y); }
 
     function calculateSnap(worldX, worldY) {
         let snapX = Math.round((worldX - BLOCK_SIZE/2) / BLOCK_SIZE) * BLOCK_SIZE;
@@ -590,23 +616,19 @@
         return { x: snapX, y: snapY };
     }
 
-    // Move handlers
     const onMove = (e) => {
-        if(isDragging || isPanning) e.preventDefault(); // Prevent scroll while playing
+        if(isDragging || isPanning) e.preventDefault();
         updateMousePos(e);
-        
         if (isPanning) {
             offsetX = mouseScreenX - panStartX;
             offsetY = mouseScreenY - panStartY;
         }
     };
 
-    // End drag handlers
     const onEnd = (e) => {
         isPanning = false;
         if (isDragging && draggedBlock) {
             const rect = canvas.getBoundingClientRect();
-            // Drop within canvas
             if (mouseScreenX >= rect.left && mouseScreenX <= rect.right &&
                 mouseScreenY >= rect.top && mouseScreenY <= rect.bottom) {
                 
@@ -616,16 +638,14 @@
                 blocks.push({ x: snap.x, y: snap.y, color: draggedBlock.color });
                 playSound('pop');
                 
-                // Spawn particles at screen location of the snap
                 let sc = worldToScreen(snap.x + BLOCK_SIZE/2, snap.y + BLOCK_SIZE/2);
                 spawnParticles(sc.x, sc.y, draggedBlock.color);
                 
                 saveState();
             } else if (draggedBlock.sourceIndex !== -1) {
-                // Thrown off screen = trash
+                // Thrown out of canvas = delete
                 playSound('trash');
                 spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color);
-                // Already removed from array on start drag, so just save state
                 saveState();
             }
             isDragging = false; draggedBlock = null;
@@ -637,12 +657,11 @@
     window.addEventListener('mouseup', onEnd);
     window.addEventListener('touchend', onEnd);
 
-    // Canvas specific events (Grabbing blocks / panning)
+    // Canvas Events (Pick up & Double Tap support!)
     const onCanvasStart = (e) => {
         initAudio();
         updateMousePos(e);
         
-        // Right click, Middle click, or two-finger touch for panning
         if (e.button === 2 || e.button === 1 || (e.touches && e.touches.length > 1)) {
             isPanning = true;
             panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
@@ -651,11 +670,36 @@
 
         let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
         let clickedIndex = getBlockAt(worldPos.x, worldPos.y);
+        
+        let now = Date.now();
+        let dist = Math.sqrt(Math.pow(mouseScreenX - lastTapX, 2) + Math.pow(mouseScreenY - lastTapY, 2));
 
+        // Handle double-tap/double-click delete
+        if (now - lastTapTime < 400 && dist < 30) {
+            if (clickedIndex !== -1) {
+                let b = blocks[clickedIndex];
+                blocks.splice(clickedIndex, 1);
+                playSound('trash');
+                spawnParticles(mouseScreenX, mouseScreenY, b.color, 20);
+                saveState();
+                
+                lastTapTime = 0;
+                isDragging = false;
+                draggedBlock = null;
+                updateUI();
+                return; // End early, don't drag
+            }
+        }
+        
+        lastTapTime = now;
+        lastTapX = mouseScreenX;
+        lastTapY = mouseScreenY;
+
+        // Normal Drag functionality
         if (clickedIndex !== -1) {
             isDragging = true;
             let b = blocks[clickedIndex];
-            draggedBlock = { color: b.color, sourceIndex: clickedIndex };
+            draggedBlock = { color: b.color, sourceIndex: clickedIndex, originalX: b.x, originalY: b.y };
             blocks.splice(clickedIndex, 1);
             playSound('pickup');
             updateUI(); 
@@ -663,7 +707,10 @@
     };
 
     canvas.addEventListener('mousedown', onCanvasStart);
-    canvas.addEventListener('touchstart', (e) => { if(e.touches.length === 1) e.preventDefault(); onCanvasStart(e); }, {passive: false});
+    canvas.addEventListener('touchstart', (e) => { 
+        if(e.touches.length === 1) e.preventDefault(); 
+        onCanvasStart(e); 
+    }, {passive: false});
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     // Zooming
@@ -685,11 +732,24 @@
     btnUndo.addEventListener('click', undo);
     btnRedo.addEventListener('click', redo);
     btnReset.addEventListener('click', reset);
+    
+    // Fullscreen toggle API
+    btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+            else if (document.documentElement.webkitRequestFullscreen) document.documentElement.webkitRequestFullscreen();
+            btnFullscreen.textContent = '↙️';
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            btnFullscreen.textContent = '📺';
+        }
+        playSound('pickup');
+    });
 
     zoomInBtn.addEventListener('click', () => { zoom = Math.min(zoom + 0.2, 2.5); playSound('pickup'); });
     zoomOutBtn.addEventListener('click', () => { zoom = Math.max(zoom - 0.2, 0.4); playSound('pickup'); });
 
-    // Blueprint Selector
     templateSelect.addEventListener('change', (e) => {
         activeTemplate = e.target.value;
         playSound('magic');
@@ -705,13 +765,13 @@
     refPanel.addEventListener('click', () => {
         playSound('pickup');
         refPanel.classList.toggle('expanded');
-        setTimeout(drawThumbnail, 400); // redraw after CSS transition
+        setTimeout(drawThumbnail, 400);
     });
 
     function drawThumbnail() {
         if (activeTemplate === 'none') return;
         refCanvas.width = refPanel.clientWidth;
-        refCanvas.height = refPanel.clientHeight - 25; 
+        refCanvas.height = refPanel.clientHeight - 22; 
 
         refCtx.clearRect(0, 0, refCanvas.width, refCanvas.height);
         const template = TEMPLATES[activeTemplate];
