@@ -15,7 +15,6 @@
             --primary: #FF5E7E;
             --secondary: #38B6FF;
             --accent: #FFDE59;
-            --bg-sky: #87CEEB;
             --text: #2D3436;
         }
 
@@ -28,10 +27,9 @@
         body {
             margin: 0; padding: 0; overflow: hidden;
             font-family: 'Nunito', sans-serif;
-            background: linear-gradient(180deg, var(--bg-sky) 0%, #E0F6FF 100%);
             display: flex; flex-direction: column; 
             height: 100vh; height: 100dvh;
-            touch-action: none; /* Prevents global document zooming/scrolling */
+            touch-action: none; 
         }
 
         /* --- Chunky, Fun UI --- */
@@ -76,7 +74,7 @@
         #workspace:active { cursor: grabbing; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-        /* --- Scrollable Side Palette Grid --- */
+        /* --- Scrollable Side Palette Grid (Single Line) --- */
         #palette {
             position: absolute; 
             top: 50%; left: 15px; 
@@ -84,26 +82,31 @@
             background: rgba(255, 255, 255, 0.95);
             padding: 15px 12px; border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+            display: flex; flex-direction: column; gap: 12px;
+            align-items: center;
             border: 4px solid white;
             z-index: 15;
-            max-height: 80vh; 
+            max-height: 70vh; 
             overflow-y: auto; overflow-x: hidden;
-            touch-action: pan-y; /* Allow vertical scrolling smoothly */
-            -ms-overflow-style: none; scrollbar-width: none; /* Hide scrollbars for clean look */
+            touch-action: pan-y;
+            /* Fun Chunky Scrollbar */
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) #E0F6FF;
         }
-        #palette::-webkit-scrollbar { display: none; }
+        #palette::-webkit-scrollbar { width: 10px; }
+        #palette::-webkit-scrollbar-track { background: #E0F6FF; border-radius: 10px; }
+        #palette::-webkit-scrollbar-thumb { background-color: var(--secondary); border-radius: 10px; border: 2px solid white; }
 
         .color-swatch {
-            width: 45px; height: 45px; border-radius: 12px;
+            width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
             cursor: grab;
             box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
             transition: transform 0.2s cubic-bezier(0.4, 2, 0.2, 1);
             position: relative;
-            touch-action: none; /* Block default drag so we pick up perfectly */
+            touch-action: none; 
         }
         .color-swatch::after {
-            content: ''; position: absolute; top: 5px; left: 10px; width: 25px; height: 8px;
+            content: ''; position: absolute; top: 5px; left: 12px; width: 24px; height: 8px;
             background: rgba(255,255,255,0.5); border-radius: 4px;
         }
         .color-swatch:hover { transform: scale(1.1) translateY(-3px); }
@@ -155,17 +158,17 @@
             50% { transform: translate(-50%, -10px); } 
         }
 
+        /* Hover Animation Tracker */
+        @keyframes outlineMarch { to { stroke-dashoffset: -20; } }
+
         /* Responsive UI for Phones & Tablets */
         @media (max-width: 768px) {
             header { flex-wrap: wrap; justify-content: space-evenly; gap: 8px; padding: 8px; }
             .logo { width: 100%; justify-content: center; font-size: 20px; margin-bottom: 4px; }
             button, select { padding: 8px 10px; font-size: 14px; }
-            
-            #palette { left: 10px; padding: 12px 10px; gap: 8px; }
-            .color-swatch { width: 40px; height: 40px; border-radius: 10px; }
-            
+            #palette { left: 8px; padding: 12px 8px; gap: 10px; }
+            .color-swatch { width: 42px; height: 42px; }
             #helper { font-size: 14px; padding: 8px 12px; }
-            
             #reference-panel { top: 95px; right: 10px; width: 90px; height: 90px; }
         }
     </style>
@@ -232,7 +235,7 @@
     </main>
 
 <script>
-    // --- Audio System (Synth Sounds) ---
+    // --- Audio System ---
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let actx = null;
 
@@ -267,7 +270,7 @@
         }
     }
 
-    // --- State & Constants ---
+    // --- Config & Constants ---
     const MAX_BLOCKS = 300;
     const BLOCK_SIZE = 50;
     const COLORS = [
@@ -276,6 +279,16 @@
         '#FFFFFF', '#2F3542', '#00CED1', '#8B4513'
     ];
     
+    // Changing Seasons System
+    const SEASONS = [
+        { name: 'Summer', skyTop: '#87CEEB', skyBot: '#E0F6FF', hill1: '#78E08F', hill2: '#B8E994' },
+        { name: 'Autumn', skyTop: '#FFB870', skyBot: '#FFE4B5', hill1: '#E17055', hill2: '#FAB1A0' },
+        { name: 'Winter', skyTop: '#B0C4DE', skyBot: '#F0F8FF', hill1: '#FFFFFF', hill2: '#E8F3F8' }
+    ];
+    let seasonTimer = 0;
+    const SEASON_DURATION = 20000; // Changes season every 20 seconds
+    let lastRenderTime = performance.now();
+
     let blocks = []; 
     let history = [];
     let historyIndex = -1;
@@ -287,11 +300,14 @@
     let draggedBlock = null; 
     let mouseScreenX = 0, mouseScreenY = 0;
     let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
+    let hoveredBlockIndex = -1;
     
-    // Tracks isolated pointer hardware locking
+    // Physics variables for smooth drag motion
+    let dragRenderX = 0, dragRenderY = 0;
     let activePointerId = null;
 
     let particles = [];
+    let weatherSystem = [];
     let clouds = [
         {x: 100, y: 50, speed: 0.2, scale: 1}, {x: 400, y: 100, speed: 0.1, scale: 1.5},
         {x: 800, y: 80, speed: 0.3, scale: 0.8}, {x: 1200, y: 150, speed: 0.15, scale: 1.2}
@@ -365,7 +381,11 @@
                 isDragging = true;
                 updateMousePos(e);
                 
-                // Track finger directly under the center of the dragged swatch
+                // Initialize physics start points
+                dragRenderX = mouseScreenX;
+                dragRenderY = mouseScreenY;
+                hoveredBlockIndex = -1;
+                
                 draggedBlock = { 
                     color: color, sourceIndex: -1, 
                     offsetX: BLOCK_SIZE / 2, offsetY: BLOCK_SIZE / 2 
@@ -374,7 +394,6 @@
                 playSound('pickup');
                 document.getElementById('helper').style.display = 'none';
                 
-                // Lock Target
                 swatch.setPointerCapture(e.pointerId);
                 activePointerId = e.pointerId;
             });
@@ -393,6 +412,20 @@
     function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+    }
+
+    // --- Color Blending (Seasons) ---
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex.replace('#',''), 16);
+        return {r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255};
+    }
+
+    function lerpColor(a, b, amount) {
+        let rgbA = hexToRgb(a); let rgbB = hexToRgb(b);
+        let r = Math.round(rgbA.r + (rgbB.r - rgbA.r) * amount);
+        let g = Math.round(rgbA.g + (rgbB.g - rgbA.g) * amount);
+        let bOut = Math.round(rgbA.b + (rgbB.b - rgbA.b) * amount);
+        return `rgb(${r},${g},${bOut})`;
     }
 
     // --- State Management ---
@@ -434,10 +467,10 @@
         btnRedo.disabled = historyIndex >= history.length - 1;
     }
 
-    // --- Coordinate & System Helpers ---
     function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
     function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
+    // --- Weather & Particles ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
@@ -448,23 +481,74 @@
         }
     }
 
-    function updateAndDrawParticles(ctx) {
+    function updateAndDrawEffects(ctx, s1, s2, blend) {
+        // Draw physical explosion particles
         for(let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i];
             p.x += p.vx; p.y += p.vy;
-            p.vy += 0.5;
-            p.life -= 0.02;
+            p.vy += 0.5; p.life -= 0.02;
             if(p.life <= 0) { particles.splice(i, 1); continue; }
             ctx.globalAlpha = p.life;
             ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
         }
         ctx.globalAlpha = 1.0;
+
+        // Dynamic Weather Spawning based on season
+        if (Math.random() < 0.05) {
+            let currentS = (blend > 0.5) ? s2.name : s1.name;
+            if (currentS === 'Winter') {
+                weatherSystem.push({ x: Math.random() * canvas.width, y: -20, vx: (Math.random() - 0.5)*2, vy: Math.random() * 2 + 1, type: 'snow' });
+            } else if (currentS === 'Autumn') {
+                weatherSystem.push({ x: Math.random() * canvas.width, y: -20, vx: Math.random() * 3 + 1, vy: Math.random() * 1.5 + 1, type: 'leaf' });
+            } else if (currentS === 'Summer' && Math.random() < 0.2) {
+                weatherSystem.push({ x: Math.random() * canvas.width, y: canvas.height + 20, vx: (Math.random() - 0.5), vy: -(Math.random() * 2 + 1), type: 'bubble' });
+            }
+        }
+
+        // Draw Weather
+        for(let i = weatherSystem.length - 1; i >= 0; i--) {
+            let w = weatherSystem[i];
+            w.x += w.vx; w.y += w.vy;
+            if (w.type === 'snow') {
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.beginPath(); ctx.arc(w.x, w.y, 4, 0, Math.PI * 2); ctx.fill();
+            } else if (w.type === 'leaf') {
+                ctx.fillStyle = '#E67E22';
+                ctx.fillRect(w.x, w.y, 8, 6);
+            } else if (w.type === 'bubble') {
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(w.x, w.y, 6, 0, Math.PI * 2); ctx.stroke();
+            }
+            if (w.y > canvas.height + 50 || w.y < -50 || w.x > canvas.width + 50) weatherSystem.splice(i, 1);
+        }
     }
 
     function drawScenery(ctx) {
+        // Calculate smooth season morphing
+        let currentSeasonIdx = Math.floor(seasonTimer / SEASON_DURATION) % SEASONS.length;
+        let nextSeasonIdx = (currentSeasonIdx + 1) % SEASONS.length;
+        let transitionProgress = (seasonTimer % SEASON_DURATION) / SEASON_DURATION;
+        
+        let blend = 0; // Hold season for 70%, transition for 30%
+        if (transitionProgress > 0.7) blend = (transitionProgress - 0.7) / 0.3;
+        
+        let s1 = SEASONS[currentSeasonIdx];
+        let s2 = SEASONS[nextSeasonIdx];
+
+        let skyTop = lerpColor(s1.skyTop, s2.skyTop, blend);
+        let skyBot = lerpColor(s1.skyBot, s2.skyBot, blend);
+        let hill1 = lerpColor(s1.hill1, s2.hill1, blend);
+        let hill2 = lerpColor(s1.hill2, s2.hill2, blend);
+
+        // Sky Gradient
+        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, skyTop); grad.addColorStop(1, skyBot);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Clouds
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
         clouds.forEach(c => {
             c.x += c.speed;
@@ -476,23 +560,32 @@
             ctx.fill();
         });
 
-        ctx.fillStyle = '#78E08F';
+        // Hills
+        ctx.fillStyle = hill1;
         ctx.beginPath();
         ctx.moveTo(0, offsetY + BLOCK_SIZE);
         ctx.quadraticCurveTo(canvas.width*0.25, offsetY - 20, canvas.width*0.5, offsetY + BLOCK_SIZE);
         ctx.quadraticCurveTo(canvas.width*0.75, offsetY + 60, canvas.width, offsetY + BLOCK_SIZE);
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        ctx.fill();
+        ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
 
-        ctx.fillStyle = '#B8E994';
+        ctx.fillStyle = hill2;
         ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
+        
+        return {s1, s2, blend};
     }
 
     // --- Core Rendering Loop ---
+    let dashOffset = 0;
+
     function gameLoop() {
+        let now = performance.now();
+        let dt = now - lastRenderTime;
+        lastRenderTime = now;
+        seasonTimer += dt;
+        dashOffset -= 0.5; // marching ants animation for hover
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawScenery(ctx);
+        let seasonData = drawScenery(ctx);
         
         ctx.save();
         ctx.translate(offsetX, offsetY);
@@ -506,8 +599,24 @@
             ctx.globalAlpha = 1.0;
         }
 
-        // Render sorted placed blocks
-        blocks.forEach(b => drawRoundedBlock(ctx, b.x, b.y, b.color, true));
+        // Render placed blocks and HOVER GLOW
+        blocks.forEach((b, i) => {
+            drawRoundedBlock(ctx, b.x, b.y, b.color, true);
+            
+            // Draw interactive Glowing Border if hovered
+            if (i === hoveredBlockIndex && !isDragging) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.lineWidth = 4;
+                ctx.lineDashOffset = dashOffset;
+                ctx.setLineDash([8, 6]);
+                ctx.beginPath();
+                if(ctx.roundRect) ctx.roundRect(b.x - 3, b.y - 12, BLOCK_SIZE + 6, BLOCK_SIZE + 14, 10);
+                else ctx.rect(b.x - 3, b.y - 12, BLOCK_SIZE + 6, BLOCK_SIZE + 14);
+                ctx.stroke();
+                ctx.restore();
+            }
+        });
 
         // Snap Ghost Preview
         if (isDragging && draggedBlock) {
@@ -521,16 +630,30 @@
 
         ctx.restore();
 
-        // Cursor Follower (1:1 Floating Object)
+        // Real-Life Physical Block Dragging (Cursor Follower with LERP & TILT)
         if (isDragging && draggedBlock) {
+            // Smoothly interpolate towards the actual mouse position
+            dragRenderX += (mouseScreenX - dragRenderX) * 0.35;
+            dragRenderY += (mouseScreenY - dragRenderY) * 0.35;
+
+            // Calculate tilt based on velocity distance
+            let tilt = (mouseScreenX - dragRenderX) * 0.015;
+            tilt = Math.max(-0.25, Math.min(0.25, tilt)); // cap tilt
+
             ctx.save();
-            ctx.translate(mouseScreenX - (draggedBlock.offsetX * zoom), mouseScreenY - (draggedBlock.offsetY * zoom));
+            ctx.translate(dragRenderX - (draggedBlock.offsetX * zoom), dragRenderY - (draggedBlock.offsetY * zoom));
+            
+            // Rotate from the center of the block
+            let cx = (BLOCK_SIZE * zoom) / 2;
+            let cy = (BLOCK_SIZE * zoom) / 2;
+            ctx.translate(cx, cy); ctx.rotate(tilt); ctx.translate(-cx, -cy);
+            
             ctx.scale(zoom, zoom); 
             drawRoundedBlock(ctx, 0, 0, draggedBlock.color, true);
             ctx.restore();
         }
 
-        updateAndDrawParticles(ctx);
+        updateAndDrawEffects(ctx, seasonData.s1, seasonData.s2, seasonData.blend);
         requestAnimationFrame(gameLoop);
     }
 
@@ -538,27 +661,23 @@
         const radius = 8; const sz = BLOCK_SIZE;
         ctx.fillStyle = color;
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(x, y, sz, sz, radius);
-        else ctx.rect(x, y, sz, sz);
+        if(ctx.roundRect) ctx.roundRect(x, y, sz, sz, radius); else ctx.rect(x, y, sz, sz);
         ctx.fill();
         
         if (shiny) {
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
             ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(x, y, sz, 10, [radius, radius, 0, 0]);
-            else ctx.rect(x, y, sz, 10);
+            if(ctx.roundRect) ctx.roundRect(x, y, sz, 10, [radius, radius, 0, 0]); else ctx.rect(x, y, sz, 10);
             ctx.fill();
             
             ctx.fillStyle = 'rgba(0,0,0,0.15)';
             ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(x, y + sz - 10, sz, 10, [0, 0, radius, radius]);
-            else ctx.rect(x, y + sz - 10, sz, 10);
+            if(ctx.roundRect) ctx.roundRect(x, y + sz - 10, sz, 10, [0, 0, radius, radius]); else ctx.rect(x, y + sz - 10, sz, 10);
             ctx.fill();
             
             ctx.fillStyle = color;
             ctx.beginPath();
-            if(ctx.roundRect) ctx.roundRect(x + 12, y - 8, sz - 24, 12, 4);
-            else ctx.rect(x + 12, y - 8, sz - 24, 12);
+            if(ctx.roundRect) ctx.roundRect(x + 12, y - 8, sz - 24, 12, 4); else ctx.rect(x + 12, y - 8, sz - 24, 12);
             ctx.fill();
             
             ctx.fillStyle = 'rgba(255,255,255,0.4)'; 
@@ -572,11 +691,12 @@
         mouseScreenY = e.clientY;
     }
 
+    // Checking Exact Surface hitboxes! (x to x+sz, y-12 to y+sz to perfectly encompass bottom/middle/top nub)
     function getBlockAt(worldX, worldY) {
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
             if (worldX >= b.x && worldX <= b.x + BLOCK_SIZE && 
-                worldY >= b.y - 10 && worldY <= b.y + BLOCK_SIZE) {
+                worldY >= b.y - 12 && worldY <= b.y + BLOCK_SIZE) {
                 return i;
             }
         }
@@ -594,13 +714,19 @@
     }
 
     const onPointerMove = (e) => {
-        if (activePointerId !== e.pointerId) return; // Prevent interference from secondary touches
-        if (isDragging || isPanning) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
+        if (activePointerId !== null && activePointerId !== e.pointerId) return; 
         updateMousePos(e);
+
+        if (!isDragging && !isPanning) {
+            let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
+            hoveredBlockIndex = getBlockAt(worldPos.x, worldPos.y);
+        } else {
+            hoveredBlockIndex = -1; // disable glow while interacting
+        }
+
+        if (isDragging || isPanning) {
+            e.preventDefault(); e.stopPropagation();
+        }
         
         if (isPanning) {
             offsetX = mouseScreenX - panStartX;
@@ -610,8 +736,7 @@
 
     const onPointerUp = (e) => {
         if (activePointerId !== e.pointerId) return;
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
 
         if (isDragging && draggedBlock) {
             const rect = canvas.getBoundingClientRect();
@@ -621,7 +746,6 @@
                 
                 let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
                 
-                // MATH FIX: Revert exact captured offset to find block's true origin
                 let blockOriginX = worldPos.x - draggedBlock.offsetX;
                 let blockOriginY = worldPos.y - draggedBlock.offsetY;
                 
@@ -654,24 +778,17 @@
     };
 
     const onCanvasPointerDown = (e) => {
-        // Discard non-primary mouse buttons (except middle/right for panning)
         if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1 && e.button !== 2) return;
         
-        e.preventDefault();
-        e.stopPropagation();
-
-        initAudio();
-        updateMousePos(e);
+        e.preventDefault(); e.stopPropagation();
+        initAudio(); updateMousePos(e);
         
-        // TARGET LOCK: Exclusively capture hardware input to the exact block interaction
         canvas.setPointerCapture(e.pointerId);
         activePointerId = e.pointerId;
         
-        // Panning mode condition
         if (e.button === 2 || e.button === 1 || !e.isPrimary) {
             isPanning = true; 
-            panStartX = mouseScreenX - offsetX; 
-            panStartY = mouseScreenY - offsetY;
+            panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
             return;
         }
 
@@ -681,7 +798,6 @@
         let now = Date.now();
         let dist = Math.hypot(mouseScreenX - lastTapX, mouseScreenY - lastTapY);
 
-        // Rapid Double Click / Double Tap deletion logic
         if (now - lastTapTime < 400 && dist < 30 && clickedIndex !== -1) {
             let b = blocks[clickedIndex];
             blocks.splice(clickedIndex, 1);
@@ -689,36 +805,30 @@
             spawnParticles(mouseScreenX, mouseScreenY, b.color, 20);
             saveState();
             
-            lastTapTime = 0; isDragging = false; draggedBlock = null;
-            updateUI();
-            
-            canvas.releasePointerCapture(e.pointerId);
-            activePointerId = null;
+            lastTapTime = 0; isDragging = false; draggedBlock = null; hoveredBlockIndex = -1;
+            updateUI(); canvas.releasePointerCapture(e.pointerId); activePointerId = null;
             return;
         }
         
-        lastTapTime = now;
-        lastTapX = mouseScreenX;
-        lastTapY = mouseScreenY;
+        lastTapTime = now; lastTapX = mouseScreenX; lastTapY = mouseScreenY;
 
-        // Sensible Dragging (Strict Mapping math locking)
         if (clickedIndex !== -1) {
             isDragging = true;
             let b = blocks[clickedIndex];
             
-            // Lock tracking fixed distance from cursor to block origin
             let offX = worldPos.x - b.x;
             let offY = worldPos.y - b.y;
 
+            dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
             draggedBlock = { color: b.color, sourceIndex: clickedIndex, offsetX: offX, offsetY: offY };
+            
             blocks.splice(clickedIndex, 1);
             playSound('pickup');
+            hoveredBlockIndex = -1;
             updateUI(); 
         } else if (e.pointerType === 'touch') {
-            // Touch panning fallback on empty grid space
             isPanning = true; 
-            panStartX = mouseScreenX - offsetX; 
-            panStartY = mouseScreenY - offsetY;
+            panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
         }
     };
 
