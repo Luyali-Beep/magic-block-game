@@ -18,10 +18,14 @@
             --text: #2D3436;
         }
 
+        /* --- Native App Behaviors --- */
         * {
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
+            -webkit-touch-callout: none; /* Disables iOS long-press popups */
+            -webkit-tap-highlight-color: transparent; /* Removes blue flash on Android/iOS taps */
+            touch-action: none; /* Kills all default browser scrolling/zooming */
         }
 
         body {
@@ -29,7 +33,6 @@
             font-family: 'Nunito', sans-serif;
             display: flex; flex-direction: column; 
             height: 100vh; height: 100dvh;
-            touch-action: none; 
         }
 
         /* --- Chunky, Fun UI --- */
@@ -89,7 +92,6 @@
             max-height: 70vh; 
             overflow-y: auto; overflow-x: hidden;
             touch-action: pan-y;
-            /* Fun Chunky Scrollbar */
             scrollbar-width: thin;
             scrollbar-color: var(--secondary) #E0F6FF;
         }
@@ -109,8 +111,6 @@
             content: ''; position: absolute; top: 5px; left: 12px; width: 24px; height: 8px;
             background: rgba(255,255,255,0.5); border-radius: 4px;
         }
-        .color-swatch:hover { transform: scale(1.1) translateY(-3px); }
-        .color-swatch:active { cursor: grabbing; transform: scale(0.9) translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
 
         /* --- Blueprint/Reference with Glowing Colorful Border --- */
         @keyframes rainbowGlow {
@@ -153,13 +153,7 @@
             animation: floatHelper 3s infinite ease-in-out;
             white-space: nowrap;
         }
-        @keyframes floatHelper { 
-            0%, 100% { transform: translate(-50%, 0); } 
-            50% { transform: translate(-50%, -10px); } 
-        }
-
-        /* Hover Animation Tracker */
-        @keyframes outlineMarch { to { stroke-dashoffset: -20; } }
+        @keyframes floatHelper { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -10px); } }
 
         /* Responsive UI for Phones & Tablets */
         @media (max-width: 768px) {
@@ -235,6 +229,17 @@
     </main>
 
 <script>
+    // --- Haptic Feedback Engine ---
+    function triggerHaptic(strength) {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try {
+                if (strength === 'light') navigator.vibrate(10);
+                else if (strength === 'heavy') navigator.vibrate([20, 10, 20]);
+                else navigator.vibrate(15);
+            } catch (e) {}
+        }
+    }
+
     // --- Audio System ---
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let actx = null;
@@ -252,18 +257,22 @@
         const now = actx.currentTime;
         
         if (type === 'pop') {
+            triggerHaptic('light');
             osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
             gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'pickup') {
+            triggerHaptic('medium');
             osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
             gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'trash') {
+            triggerHaptic('heavy');
             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
             gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
             osc.start(now); osc.stop(now + 0.2);
         } else if (type === 'magic') {
+            triggerHaptic('heavy');
             osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(600, now + 0.1); osc.frequency.setValueAtTime(800, now + 0.2);
             gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
             osc.start(now); osc.stop(now + 0.4);
@@ -286,7 +295,7 @@
         { name: 'Winter', skyTop: '#B0C4DE', skyBot: '#F0F8FF', hill1: '#FFFFFF', hill2: '#E8F3F8' }
     ];
     let seasonTimer = 0;
-    const SEASON_DURATION = 20000; // Changes season every 20 seconds
+    const SEASON_DURATION = 20000; 
     let lastRenderTime = performance.now();
 
     let blocks = []; 
@@ -386,9 +395,12 @@
                 dragRenderY = mouseScreenY;
                 hoveredBlockIndex = -1;
                 
+                // NATIVE FEEL: Squish start size, bounce to target scale
                 draggedBlock = { 
                     color: color, sourceIndex: -1, 
-                    offsetX: BLOCK_SIZE / 2, offsetY: BLOCK_SIZE / 2 
+                    offsetX: BLOCK_SIZE / 2, offsetY: BLOCK_SIZE / 2,
+                    scale: 0.5, targetScale: 1.15, 
+                    isTouch: e.pointerType === 'touch'
                 };
                 
                 playSound('pickup');
@@ -618,7 +630,7 @@
             }
         });
 
-        // Snap Ghost Preview
+        // Snap Ghost Preview (Shows exactly where it will drop)
         if (isDragging && draggedBlock) {
             let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
             let snap = calculateSnap(worldPos.x - draggedBlock.offsetX + BLOCK_SIZE/2, worldPos.y - draggedBlock.offsetY + BLOCK_SIZE/2);
@@ -630,25 +642,38 @@
 
         ctx.restore();
 
-        // Real-Life Physical Block Dragging (Cursor Follower with LERP & TILT)
+        // NATIVE FEEL: Real-Life Physical Block Dragging (Cursor Follower with LERP, SCALE, & TILT)
         if (isDragging && draggedBlock) {
             // Smoothly interpolate towards the actual mouse position
-            dragRenderX += (mouseScreenX - dragRenderX) * 0.35;
-            dragRenderY += (mouseScreenY - dragRenderY) * 0.35;
+            dragRenderX += (mouseScreenX - dragRenderX) * 0.4;
+            dragRenderY += (mouseScreenY - dragRenderY) * 0.4;
+
+            // Elastic bounce scale (squish and pop)
+            draggedBlock.scale += (draggedBlock.targetScale - draggedBlock.scale) * 0.35;
 
             // Calculate tilt based on velocity distance
             let tilt = (mouseScreenX - dragRenderX) * 0.015;
             tilt = Math.max(-0.25, Math.min(0.25, tilt)); // cap tilt
 
+            // FAT-FINGER LIFT: Push the visual block up so the finger doesn't hide it
+            let touchLift = draggedBlock.isTouch ? 60 * zoom : 0;
+
             ctx.save();
-            ctx.translate(dragRenderX - (draggedBlock.offsetX * zoom), dragRenderY - (draggedBlock.offsetY * zoom));
             
-            // Rotate from the center of the block
-            let cx = (BLOCK_SIZE * zoom) / 2;
-            let cy = (BLOCK_SIZE * zoom) / 2;
-            ctx.translate(cx, cy); ctx.rotate(tilt); ctx.translate(-cx, -cy);
+            // Move coordinate origin exactly to the physics render point minus offsets and touch lift
+            ctx.translate(
+                dragRenderX - (draggedBlock.offsetX * zoom), 
+                dragRenderY - (draggedBlock.offsetY * zoom) - touchLift
+            );
             
             ctx.scale(zoom, zoom); 
+            
+            // Translate to the middle of the block to apply tilts and scales safely
+            ctx.translate(BLOCK_SIZE/2, BLOCK_SIZE/2);
+            ctx.rotate(tilt); 
+            ctx.scale(draggedBlock.scale, draggedBlock.scale);
+            ctx.translate(-BLOCK_SIZE/2, -BLOCK_SIZE/2);
+            
             drawRoundedBlock(ctx, 0, 0, draggedBlock.color, true);
             ctx.restore();
         }
@@ -757,13 +782,13 @@
                 
                 playSound('pop');
                 let sc = worldToScreen(snap.x + BLOCK_SIZE/2, snap.y + BLOCK_SIZE/2);
-                spawnParticles(sc.x, sc.y, draggedBlock.color);
+                spawnParticles(sc.x, sc.y, draggedBlock.color, 15);
                 
                 saveState();
             } else if (draggedBlock.sourceIndex !== -1) {
                 // Thrown out of canvas entirely bounds = delete
                 playSound('trash');
-                spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color);
+                spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color, 25);
                 saveState();
             }
             isDragging = false; 
@@ -820,7 +845,14 @@
             let offY = worldPos.y - b.y;
 
             dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
-            draggedBlock = { color: b.color, sourceIndex: clickedIndex, offsetX: offX, offsetY: offY };
+            
+            // NATIVE FEEL: Pop scale
+            draggedBlock = { 
+                color: b.color, sourceIndex: clickedIndex, 
+                offsetX: offX, offsetY: offY,
+                scale: 0.7, targetScale: 1.15,
+                isTouch: e.pointerType === 'touch'
+            };
             
             blocks.splice(clickedIndex, 1);
             playSound('pickup');
