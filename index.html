@@ -18,7 +18,7 @@
             --text: #2D3436;
         }
 
-        /* --- Native App Behaviors --- */
+        /* --- Native App Behaviors (Crucial for Mobile) --- */
         * {
             box-sizing: border-box;
             user-select: none;
@@ -155,26 +155,18 @@
         }
         @keyframes floatHelper { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -10px); } }
 
-        /* --- D-Pad Navigation Controls (New) --- */
+        /* --- D-Pad Navigation Controls (For isolated Screen Moving) --- */
         #nav-controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            z-index: 15;
+            position: absolute; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 15;
         }
         .nav-row { display: flex; gap: 6px; }
         .nav-btn {
             width: 48px; height: 48px; border-radius: 12px;
             background: rgba(255, 255, 255, 0.95);
             border: 3px solid var(--secondary); color: var(--secondary);
-            font-size: 20px; font-weight: bold;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.1);
-            touch-action: none; padding: 0;
+            font-size: 20px; font-weight: bold; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.1); touch-action: none; padding: 0;
             transition: all 0.1s;
         }
         .nav-btn:active { 
@@ -248,10 +240,9 @@
                 <span>👋</span> <strong>Drag a block & Double-Tap to delete!</strong>
             </div>
 
-            <!-- Scrollable Sidebar Palette -->
             <div id="palette"></div>
             
-            <!-- NEW: D-Pad Navigation Controls -->
+            <!-- D-Pad Navigation Controls -->
             <div id="nav-controls">
                 <button class="nav-btn" id="nav-up">▲</button>
                 <div class="nav-row">
@@ -319,7 +310,6 @@
         }
     }
 
-    // --- Config & Constants ---
     const MAX_BLOCKS = 300;
     const BLOCK_SIZE = 50;
     const COLORS = [
@@ -328,7 +318,6 @@
         '#FFFFFF', '#2F3542', '#00CED1', '#8B4513'
     ];
     
-    // Changing Seasons System
     const SEASONS = [
         { name: 'Summer', skyTop: '#87CEEB', skyBot: '#E0F6FF', hill1: '#78E08F', hill2: '#B8E994' },
         { name: 'Autumn', skyTop: '#FFB870', skyBot: '#FFE4B5', hill1: '#E17055', hill2: '#FAB1A0' },
@@ -344,21 +333,18 @@
 
     let offsetX = 0, offsetY = 0, zoom = 1.0;
     
-    // Desktop Pan Support
+    // Desktop Pan Support & Screen D-Pad
     let isPanning = false, panStartX, panStartY;
-    
-    // Screen D-Pad Variables
     let panSpeedX = 0, panSpeedY = 0;
     const PAN_VELOCITY = 15;
 
     let isDragging = false;
     let draggedBlock = null; 
     let mouseScreenX = 0, mouseScreenY = 0;
+    let dragTilt = 0; // Tracks block rotation velocity
+    
     let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
     let hoveredBlockIndex = -1;
-    
-    // Physics variables for smooth drag motion
-    let dragRenderX = 0, dragRenderY = 0;
     let activePointerId = null;
 
     let particles = [];
@@ -425,7 +411,6 @@
             swatch.className = 'color-swatch';
             swatch.style.backgroundColor = color;
             
-            // Pointer Event attachment for Palette elements
             swatch.addEventListener('pointerdown', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 initAudio(); triggerHaptic('light');
@@ -435,14 +420,13 @@
                 isDragging = true;
                 updateMousePos(e);
                 
-                dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
+                dragTilt = 0;
                 hoveredBlockIndex = -1;
                 
                 draggedBlock = { 
                     color: color, sourceIndex: -1, 
                     offsetX: BLOCK_SIZE / 2, offsetY: BLOCK_SIZE / 2,
-                    scale: 0.5, targetScale: 1.15, 
-                    isTouch: e.pointerType === 'touch'
+                    scale: 0.5, targetScale: 1.15
                 };
                 
                 playSound('pickup');
@@ -464,10 +448,15 @@
             let btn = document.getElementById(id);
             const start = (e) => { e.preventDefault(); panSpeedX = dx; panSpeedY = dy; triggerHaptic('light'); };
             const stop = (e) => { e.preventDefault(); panSpeedX = 0; panSpeedY = 0; };
+            
             btn.addEventListener('pointerdown', start);
             btn.addEventListener('pointerup', stop);
             btn.addEventListener('pointerleave', stop);
             btn.addEventListener('pointercancel', stop);
+            
+            // Backup touch events for absolute instant response
+            btn.addEventListener('touchstart', start, {passive: false});
+            btn.addEventListener('touchend', stop, {passive: false});
         }
         
         bindNavBtn('nav-up', 0, PAN_VELOCITY);
@@ -477,9 +466,7 @@
 
         document.getElementById('nav-center').addEventListener('pointerdown', (e) => {
             e.preventDefault(); triggerHaptic('medium');
-            offsetX = canvas.width / 2;
-            offsetY = canvas.height - 180;
-            zoom = 1.0;
+            offsetX = canvas.width / 2; offsetY = canvas.height - 180; zoom = 1.0;
         });
 
         saveState(); 
@@ -491,7 +478,6 @@
         canvas.height = window.innerHeight;
     }
 
-    // --- Color Blending (Seasons) ---
     function hexToRgb(hex) {
         let bigint = parseInt(hex.replace('#',''), 16);
         return {r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255};
@@ -505,7 +491,6 @@
         return `rgb(${r},${g},${bOut})`;
     }
 
-    // --- State Management ---
     function saveState() {
         history = history.slice(0, historyIndex + 1);
         history.push(JSON.parse(JSON.stringify(blocks)));
@@ -530,13 +515,9 @@
     }
 
     function reset() {
-        blocks = [];
-        saveState();
-        offsetX = canvas.width / 2;
-        offsetY = canvas.height - 180;
-        zoom = 1.0;
-        playSound('magic');
-        spawnParticles(canvas.width/2, canvas.height/2, '#FFDE59', 30);
+        blocks = []; saveState();
+        offsetX = canvas.width / 2; offsetY = canvas.height - 180; zoom = 1.0;
+        playSound('magic'); spawnParticles(canvas.width/2, canvas.height/2, '#FFDE59', 30);
     }
 
     function updateUI() {
@@ -547,7 +528,6 @@
     function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
     function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
-    // --- Weather & Particles ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
@@ -564,8 +544,7 @@
             p.x += p.vx; p.y += p.vy;
             p.vy += 0.5; p.life -= 0.02;
             if(p.life <= 0) { particles.splice(i, 1); continue; }
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
         }
         ctx.globalAlpha = 1.0;
@@ -615,30 +594,24 @@
 
         let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
         grad.addColorStop(0, skyTop); grad.addColorStop(1, skyBot);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = 'rgba(255,255,255,0.8)';
         clouds.forEach(c => {
             c.x += c.speed;
             if (c.x > canvas.width + 100) c.x = -100;
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, 30*c.scale, 0, Math.PI*2);
+            ctx.beginPath(); ctx.arc(c.x, c.y, 30*c.scale, 0, Math.PI*2);
             ctx.arc(c.x + 25*c.scale, c.y - 15*c.scale, 35*c.scale, 0, Math.PI*2);
-            ctx.arc(c.x + 50*c.scale, c.y, 25*c.scale, 0, Math.PI*2);
-            ctx.fill();
+            ctx.arc(c.x + 50*c.scale, c.y, 25*c.scale, 0, Math.PI*2); ctx.fill();
         });
 
         ctx.fillStyle = hill1;
-        ctx.beginPath();
-        ctx.moveTo(0, offsetY + BLOCK_SIZE);
+        ctx.beginPath(); ctx.moveTo(0, offsetY + BLOCK_SIZE);
         ctx.quadraticCurveTo(canvas.width*0.25, offsetY - 20, canvas.width*0.5, offsetY + BLOCK_SIZE);
         ctx.quadraticCurveTo(canvas.width*0.75, offsetY + 60, canvas.width, offsetY + BLOCK_SIZE);
         ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height); ctx.fill();
 
-        ctx.fillStyle = hill2;
-        ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
-        
+        ctx.fillStyle = hill2; ctx.fillRect(0, offsetY + BLOCK_SIZE, canvas.width, 10);
         return {s1, s2, blend};
     }
 
@@ -682,8 +655,7 @@
                 ctx.beginPath();
                 if(ctx.roundRect) ctx.roundRect(b.x - 3, b.y - 12, BLOCK_SIZE + 6, BLOCK_SIZE + 14, 10);
                 else ctx.rect(b.x - 3, b.y - 12, BLOCK_SIZE + 6, BLOCK_SIZE + 14);
-                ctx.stroke();
-                ctx.restore();
+                ctx.stroke(); ctx.restore();
             }
         });
 
@@ -699,22 +671,20 @@
 
         ctx.restore();
 
-        // NATIVE FEEL: Real-Life Physical Block Dragging (Cursor Follower with LERP, SCALE, & TILT)
+        // PERFECT 1:1 RESPONSIVE DRAGGING
         if (isDragging && draggedBlock) {
-            dragRenderX += (mouseScreenX - dragRenderX) * 0.4;
-            dragRenderY += (mouseScreenY - dragRenderY) * 0.4;
-
+            // Smoothly animate the "pop" scale when picked up
             draggedBlock.scale += (draggedBlock.targetScale - draggedBlock.scale) * 0.35;
-
-            let tilt = (mouseScreenX - dragRenderX) * 0.015;
-            tilt = Math.max(-0.25, Math.min(0.25, tilt)); 
-
-            let touchLift = draggedBlock.isTouch ? 60 * zoom : 0;
+            
+            // Apply physics sway based on motion velocity
+            dragTilt *= 0.8; // Decay back to straight
+            let tilt = Math.max(-0.25, Math.min(0.25, dragTilt)); 
 
             ctx.save();
+            // Block position perfectly mirrors your finger instantly (no positional lag)
             ctx.translate(
-                dragRenderX - (draggedBlock.offsetX * zoom), 
-                dragRenderY - (draggedBlock.offsetY * zoom) - touchLift
+                mouseScreenX - (draggedBlock.offsetX * zoom), 
+                mouseScreenY - (draggedBlock.offsetY * zoom)
             );
             
             ctx.scale(zoom, zoom); 
@@ -765,12 +735,13 @@
         mouseScreenY = e.clientY;
     }
 
-    // EXACT SURFACE CHECK: Allows clicking anywhere on the visible block
+    // MASSIVELY EXPANDED HITBOX: Ensures you grab a block even if you slightly miss it
     function getBlockAt(worldX, worldY) {
+        const PAD = 15; // 15 extra pixels of invisible grabbing area on all sides
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
-            if (worldX >= b.x && worldX <= b.x + BLOCK_SIZE && 
-                worldY >= b.y - 12 && worldY <= b.y + BLOCK_SIZE) {
+            if (worldX >= b.x - PAD && worldX <= b.x + BLOCK_SIZE + PAD && 
+                worldY >= b.y - 12 - PAD && worldY <= b.y + BLOCK_SIZE + PAD) {
                 return i;
             }
         }
@@ -789,6 +760,10 @@
 
     const onPointerMove = (e) => {
         if (activePointerId !== null && activePointerId !== e.pointerId) return; 
+        
+        let moveX = e.clientX - mouseScreenX;
+        if (isDragging) dragTilt += moveX * 0.02; // Add physics sway based on motion speed
+        
         updateMousePos(e);
 
         if (!isDragging && !isPanning) {
@@ -835,8 +810,7 @@
                 spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color, 25);
                 saveState();
             }
-            isDragging = false; 
-            draggedBlock = null;
+            isDragging = false; draggedBlock = null;
         }
         
         isPanning = false;
@@ -853,7 +827,8 @@
         canvas.setPointerCapture(e.pointerId);
         activePointerId = e.pointerId;
         
-        // ONLY allow panning via mouse if right/middle clicking. NO single touch panning on canvas allowed!
+        // ONLY allow screen panning on canvas if using Right/Middle Mouse Click. 
+        // Single Touch / Left Click is strictly locked to picking up blocks.
         if (e.pointerType === 'mouse' && (e.button === 2 || e.button === 1)) {
             isPanning = true; 
             panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
@@ -866,10 +841,11 @@
         let now = Date.now();
         let dist = Math.hypot(mouseScreenX - lastTapX, mouseScreenY - lastTapY);
 
-        if (now - lastTapTime < 400 && dist < 30 && clickedIndex !== -1) {
+        // TIGHTER DOUBLE-TAP RULE: Prevents accidental deletions when you tap & drag quickly
+        if (now - lastTapTime < 300 && dist < 20 && clickedIndex !== -1) {
             let b = blocks[clickedIndex];
             blocks.splice(clickedIndex, 1);
-            playSound('trash');
+            playSound('trash'); triggerHaptic('heavy');
             spawnParticles(mouseScreenX, mouseScreenY, b.color, 20);
             saveState();
             
@@ -880,21 +856,19 @@
         
         lastTapTime = now; lastTapX = mouseScreenX; lastTapY = mouseScreenY;
 
-        // Reserve single touch EXCLUSIVELY for block dragging
+        // Start Dragging block (100% strict touch interaction)
         if (clickedIndex !== -1) {
             isDragging = true;
             let b = blocks[clickedIndex];
             
             let offX = worldPos.x - b.x;
             let offY = worldPos.y - b.y;
-
-            dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
+            dragTilt = 0;
             
             draggedBlock = { 
                 color: b.color, sourceIndex: clickedIndex, 
                 offsetX: offX, offsetY: offY,
-                scale: 0.7, targetScale: 1.15,
-                isTouch: e.pointerType === 'touch'
+                scale: 0.7, targetScale: 1.15
             };
             
             blocks.splice(clickedIndex, 1);
@@ -943,7 +917,7 @@
     zoomOutBtn.addEventListener('click', () => { zoom = Math.max(zoom - 0.2, 0.4); playSound('pickup'); });
 
     templateSelect.addEventListener('change', (e) => {
-        activeTemplate = e.target.value; playSound('magic');
+        activeTemplate = e.target.value; playSound('magic'); triggerHaptic('medium');
         spawnParticles(canvas.width/2, canvas.height/4, '#FFDE59', 20);
         if (activeTemplate === 'none') {
             refPanel.style.display = 'none'; refPanel.classList.remove('expanded');
