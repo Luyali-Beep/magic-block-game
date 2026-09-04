@@ -420,7 +420,7 @@
                 isDragging = true;
                 updateMousePos(e);
                 
-                dragTilt = 0;
+                dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
                 hoveredBlockIndex = -1;
                 
                 draggedBlock = { 
@@ -454,7 +454,6 @@
             btn.addEventListener('pointerleave', stop);
             btn.addEventListener('pointercancel', stop);
             
-            // Backup touch events for absolute instant response
             btn.addEventListener('touchstart', start, {passive: false});
             btn.addEventListener('touchend', stop, {passive: false});
         }
@@ -474,8 +473,10 @@
     }
 
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Fix: Use the parent container to map internal pixels to exact CSS screen dimensions 1:1.
+        const workspace = document.getElementById('workspace');
+        canvas.width = workspace.clientWidth;
+        canvas.height = workspace.clientHeight;
     }
 
     function hexToRgb(hex) {
@@ -528,6 +529,7 @@
     function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
     function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
+    // --- Weather & Particles ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
@@ -636,7 +638,6 @@
         ctx.translate(offsetX, offsetY);
         ctx.scale(zoom, zoom);
 
-        // Blueprint Guide
         if (activeTemplate !== 'none') {
             const template = TEMPLATES[activeTemplate];
             ctx.globalAlpha = 0.3;
@@ -644,7 +645,6 @@
             ctx.globalAlpha = 1.0;
         }
 
-        // Render placed blocks and HOVER GLOW
         blocks.forEach((b, i) => {
             drawRoundedBlock(ctx, b.x, b.y, b.color, true);
             
@@ -659,7 +659,7 @@
             }
         });
 
-        // Snap Ghost Preview
+        // Snap Ghost Preview (aligned perfectly underneath finger)
         if (isDragging && draggedBlock) {
             let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
             let snap = calculateSnap(worldPos.x - draggedBlock.offsetX + BLOCK_SIZE/2, worldPos.y - draggedBlock.offsetY + BLOCK_SIZE/2);
@@ -671,17 +671,15 @@
 
         ctx.restore();
 
-        // PERFECT 1:1 RESPONSIVE DRAGGING
+        // 1:1 INSTANT DRAGGING WITH NO LIFT OFFSET (True to finger position)
         if (isDragging && draggedBlock) {
-            // Smoothly animate the "pop" scale when picked up
+            // Elastic pop scale effect when grabbed
             draggedBlock.scale += (draggedBlock.targetScale - draggedBlock.scale) * 0.35;
             
-            // Apply physics sway based on motion velocity
-            dragTilt *= 0.8; // Decay back to straight
+            dragTilt *= 0.8; 
             let tilt = Math.max(-0.25, Math.min(0.25, dragTilt)); 
 
             ctx.save();
-            // Block position perfectly mirrors your finger instantly (no positional lag)
             ctx.translate(
                 mouseScreenX - (draggedBlock.offsetX * zoom), 
                 mouseScreenY - (draggedBlock.offsetY * zoom)
@@ -729,15 +727,16 @@
         }
     }
 
-    // --- REFACTORED POINTER INTERACTION LOGIC ---
+    // --- CRUCIAL FIX: PIXEL PERFECT POINTER MAPPING ---
     function updateMousePos(e) {
-        mouseScreenX = e.clientX; 
-        mouseScreenY = e.clientY;
+        // We subtract the canvas offset so the Touch aligns perfectly with the Canvas Drawing area
+        const rect = canvas.getBoundingClientRect();
+        mouseScreenX = e.clientX - rect.left; 
+        mouseScreenY = e.clientY - rect.top;
     }
 
-    // MASSIVELY EXPANDED HITBOX: Ensures you grab a block even if you slightly miss it
     function getBlockAt(worldX, worldY) {
-        const PAD = 15; // 15 extra pixels of invisible grabbing area on all sides
+        const PAD = 10; // Extra invisible area to make block easy to grab
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
             if (worldX >= b.x - PAD && worldX <= b.x + BLOCK_SIZE + PAD && 
@@ -761,8 +760,8 @@
     const onPointerMove = (e) => {
         if (activePointerId !== null && activePointerId !== e.pointerId) return; 
         
-        let moveX = e.clientX - mouseScreenX;
-        if (isDragging) dragTilt += moveX * 0.02; // Add physics sway based on motion speed
+        let moveX = (e.clientX - canvas.getBoundingClientRect().left) - mouseScreenX;
+        if (isDragging) dragTilt += moveX * 0.02; // Physics sway
         
         updateMousePos(e);
 
@@ -788,9 +787,9 @@
         e.preventDefault(); e.stopPropagation();
 
         if (isDragging && draggedBlock) {
-            const rect = canvas.getBoundingClientRect();
-            if (mouseScreenX >= rect.left && mouseScreenX <= rect.right &&
-                mouseScreenY >= rect.top && mouseScreenY <= rect.bottom) {
+            // Safe bounding check within actual canvas width/height
+            if (mouseScreenX >= 0 && mouseScreenX <= canvas.width &&
+                mouseScreenY >= 0 && mouseScreenY <= canvas.height) {
                 
                 let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
                 let blockOriginX = worldPos.x - draggedBlock.offsetX;
@@ -806,7 +805,7 @@
                 
                 saveState();
             } else if (draggedBlock.sourceIndex !== -1) {
-                playSound('trash');
+                playSound('trash'); triggerHaptic('heavy');
                 spawnParticles(mouseScreenX, mouseScreenY, draggedBlock.color, 25);
                 saveState();
             }
@@ -827,8 +826,6 @@
         canvas.setPointerCapture(e.pointerId);
         activePointerId = e.pointerId;
         
-        // ONLY allow screen panning on canvas if using Right/Middle Mouse Click. 
-        // Single Touch / Left Click is strictly locked to picking up blocks.
         if (e.pointerType === 'mouse' && (e.button === 2 || e.button === 1)) {
             isPanning = true; 
             panStartX = mouseScreenX - offsetX; panStartY = mouseScreenY - offsetY;
@@ -841,7 +838,6 @@
         let now = Date.now();
         let dist = Math.hypot(mouseScreenX - lastTapX, mouseScreenY - lastTapY);
 
-        // TIGHTER DOUBLE-TAP RULE: Prevents accidental deletions when you tap & drag quickly
         if (now - lastTapTime < 300 && dist < 20 && clickedIndex !== -1) {
             let b = blocks[clickedIndex];
             blocks.splice(clickedIndex, 1);
@@ -856,7 +852,6 @@
         
         lastTapTime = now; lastTapX = mouseScreenX; lastTapY = mouseScreenY;
 
-        // Start Dragging block (100% strict touch interaction)
         if (clickedIndex !== -1) {
             isDragging = true;
             let b = blocks[clickedIndex];
