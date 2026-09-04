@@ -18,14 +18,13 @@
             --text: #2D3436;
         }
 
-        /* --- Native App Behaviors (Crucial for Mobile) --- */
+        /* --- Native App Behaviors --- */
         * {
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
             -webkit-touch-callout: none; 
             -webkit-tap-highlight-color: transparent; 
-            touch-action: none; 
         }
 
         body {
@@ -33,6 +32,7 @@
             font-family: 'Nunito', sans-serif;
             display: flex; flex-direction: column; 
             height: 100vh; height: 100dvh;
+            touch-action: none;
         }
 
         /* --- Chunky, Fun UI --- */
@@ -69,7 +69,10 @@
 
         .btn-magic { background-color: var(--primary); color: white; box-shadow: 0 4px 0 #D63056; }
         .btn-magic:hover:not(:disabled) { background-color: #FF708D; }
-        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; max-width: 160px; }
+        .btn-blueprint { background-color: var(--secondary); color: white; box-shadow: 0 4px 0 #0f8de0; display: none; }
+        .btn-blueprint:hover:not(:disabled) { background-color: #5AC2FF; }
+
+        select { box-shadow: inset 0 2px 5px rgba(0,0,0,0.05); border: 2px solid #E2E8F0; max-width: 150px; }
 
         main { flex: 1; position: relative; }
 
@@ -77,7 +80,7 @@
         #workspace:active { cursor: grabbing; }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-        /* --- Scrollable Side Palette Grid (Single Line) --- */
+        /* --- Scrollable Palette --- */
         #palette {
             position: absolute; 
             top: 50%; left: 15px; 
@@ -86,79 +89,71 @@
             padding: 15px 12px; border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15), inset 0 -4px 0 rgba(0,0,0,0.05);
             display: flex; flex-direction: column; gap: 12px;
-            align-items: center;
-            border: 4px solid white;
-            z-index: 15;
+            align-items: center; border: 4px solid white; z-index: 15;
             max-height: 70vh; 
             overflow-y: auto; overflow-x: hidden;
-            touch-action: pan-y;
-            scrollbar-width: thin;
-            scrollbar-color: var(--secondary) #E0F6FF;
+            touch-action: pan-y; 
+            scrollbar-width: none; -ms-overflow-style: none; 
         }
-        #palette::-webkit-scrollbar { width: 10px; }
-        #palette::-webkit-scrollbar-track { background: #E0F6FF; border-radius: 10px; }
-        #palette::-webkit-scrollbar-thumb { background-color: var(--secondary); border-radius: 10px; border: 2px solid white; }
+        #palette::-webkit-scrollbar { display: none; }
 
         .color-swatch {
             width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
-            cursor: grab;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
+            cursor: grab; box-shadow: 0 6px 0 rgba(0,0,0,0.15), inset 0 5px 10px rgba(255,255,255,0.4);
             transition: transform 0.2s cubic-bezier(0.4, 2, 0.2, 1);
-            position: relative;
-            touch-action: none; 
+            position: relative; 
+            touch-action: pan-y; 
         }
         .color-swatch::after {
             content: ''; position: absolute; top: 5px; left: 12px; width: 24px; height: 8px;
             background: rgba(255,255,255,0.5); border-radius: 4px;
         }
 
-        /* --- Blueprint/Reference with Glowing Colorful Border --- */
+        /* --- Blueprint Modal --- */
         @keyframes rainbowGlow {
-            0% { border-color: #FF5E7E; box-shadow: 0 8px 25px rgba(255, 94, 126, 0.5); }
-            25% { border-color: #FFDE59; box-shadow: 0 8px 25px rgba(255, 222, 89, 0.5); }
-            50% { border-color: #38B6FF; box-shadow: 0 8px 25px rgba(56, 182, 255, 0.5); }
-            75% { border-color: #2ED573; box-shadow: 0 8px 25px rgba(46, 213, 115, 0.5); }
-            100% { border-color: #FF5E7E; box-shadow: 0 8px 25px rgba(255, 94, 126, 0.5); }
+            0% { border-color: #FF5E7E; box-shadow: 0 8px 30px rgba(255, 94, 126, 0.6); }
+            25% { border-color: #FFDE59; box-shadow: 0 8px 30px rgba(255, 222, 89, 0.6); }
+            50% { border-color: #38B6FF; box-shadow: 0 8px 30px rgba(56, 182, 255, 0.6); }
+            75% { border-color: #2ED573; box-shadow: 0 8px 30px rgba(46, 213, 115, 0.6); }
+            100% { border-color: #FF5E7E; box-shadow: 0 8px 30px rgba(255, 94, 126, 0.6); }
         }
 
-        #reference-panel {
-            position: absolute; top: 15px; right: 15px;
-            width: 120px; height: 120px;
-            background: white; border: 4px solid var(--secondary); border-radius: 16px;
-            cursor: pointer; display: none; overflow: hidden; z-index: 20;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            animation: rainbowGlow 4s infinite linear;
+        #blueprint-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px);
         }
-        #reference-panel::before {
-            content: "💡 Blueprint"; display: block; background: var(--secondary);
-            color: white; font-size: 11px; text-align: center; padding: 4px 0; font-weight: bold;
+        .blueprint-modal {
+            background: white; padding: 20px; border-radius: 25px;
+            border: 6px solid var(--secondary); width: 85vmin; height: 85vmin; 
+            display: flex; flex-direction: column; animation: rainbowGlow 4s infinite linear;
         }
-        #ref-canvas { width: 100%; height: calc(100% - 22px); background: #f8fbff; }
-
-        #reference-panel.expanded {
-            top: 50%; right: 50%; transform: translate(50%, -50%);
-            width: 85vmin; height: 85vmin; border-width: 8px;
-            box-shadow: 0 0 0 2000px rgba(0,0,0,0.6) !important;
-            animation: none; border-color: white;
+        .blueprint-modal h3 { margin: 0 0 10px 0; text-align: center; color: var(--text); font-size: 22px;}
+        #ref-canvas { flex: 1; width: 100%; background: #f8fbff; border-radius: 12px; }
+        #btn-close-blueprint { 
+            margin-top: 15px; background: var(--primary); width: 100%; color: white; 
+            padding: 12px; border-radius: 15px; font-size: 18px; box-shadow: 0 4px 0 #D63056;
         }
 
-        /* --- Cute Helper Toast --- */
+        /* --- Helper Toast --- */
         #helper {
-            position: absolute; top: 15px; left: 50%;
-            transform: translateX(-50%);
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             background: white; padding: 12px 18px; border-radius: 20px;
             font-size: 16px; color: var(--text); border: 3px solid var(--accent);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); pointer-events: none;
             display: flex; align-items: center; gap: 10px; z-index: 5;
-            animation: floatHelper 3s infinite ease-in-out;
-            white-space: nowrap;
+            animation: floatHelper 3s infinite ease-in-out; white-space: nowrap;
         }
         @keyframes floatHelper { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -10px); } }
 
-        /* --- D-Pad Navigation Controls (For isolated Screen Moving) --- */
+        /* --- D-Pad Navigation Controls --- */
         #nav-controls {
             position: absolute; bottom: 20px; right: 20px;
             display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 15;
+            opacity: 0.5; transition: opacity 0.3s;
+        }
+        #nav-controls:hover, #nav-controls:active, #nav-controls:focus-within {
+            opacity: 1.0; 
         }
         .nav-row { display: flex; gap: 6px; }
         .nav-btn {
@@ -169,21 +164,16 @@
             cursor: pointer; box-shadow: 0 6px 0 rgba(0,0,0,0.1); touch-action: none; padding: 0;
             transition: all 0.1s;
         }
-        .nav-btn:active { 
-            transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.1); 
-            background: var(--secondary); color: white; 
-        }
+        .nav-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.1); background: var(--secondary); color: white; }
 
-        /* Responsive UI for Phones & Tablets */
+        /* Responsive Tweaks */
         @media (max-width: 768px) {
             header { flex-wrap: wrap; justify-content: space-evenly; gap: 8px; padding: 8px; }
             .logo { width: 100%; justify-content: center; font-size: 20px; margin-bottom: 4px; }
             button, select { padding: 8px 10px; font-size: 14px; }
-            #palette { left: 8px; padding: 12px 8px; gap: 10px; }
+            #palette { left: 8px; padding: 12px 8px; gap: 10px;}
             .color-swatch { width: 42px; height: 42px; }
             #helper { font-size: 14px; padding: 8px 12px; }
-            
-            #reference-panel { top: 95px; left: 10px; right: auto; width: 70px; height: 70px; }
             #nav-controls { bottom: 15px; right: 10px; transform: scale(0.9); transform-origin: bottom right; }
         }
     </style>
@@ -220,6 +210,7 @@
                 <option value="fish">🐟 Fish</option>
                 <option value="spider">🕷️ Spider</option>
             </select>
+            <button id="btn-blueprint" class="btn-blueprint">💡 Blueprint</button>
             <button id="btn-zoom-out" title="Zoom Out">🔍-</button>
             <button id="btn-zoom-in" title="Zoom In">🔍+</button>
             <button id="btn-fullscreen" title="Full Screen">📺</button>
@@ -236,10 +227,9 @@
         <div id="workspace">
             <canvas id="main-canvas"></canvas>
             
-            <div id="helper">
-                <span>👋</span> <strong>Drag a block & Double-Tap to delete!</strong>
-            </div>
+            <div id="helper"><span>👋</span> <strong>Grab a block, double-tap to delete!</strong></div>
 
+            <!-- Single Container Scrollable Palette -->
             <div id="palette"></div>
             
             <!-- D-Pad Navigation Controls -->
@@ -254,8 +244,13 @@
             </div>
         </div>
 
-        <div id="reference-panel">
-            <canvas id="ref-canvas"></canvas>
+        <!-- Center Blueprint Modal -->
+        <div id="blueprint-overlay">
+            <div class="blueprint-modal">
+                <h3>💡 Blueprint Guide</h3>
+                <canvas id="ref-canvas"></canvas>
+                <button id="btn-close-blueprint">Got it! Close.</button>
+            </div>
         </div>
     </main>
 
@@ -333,7 +328,6 @@
 
     let offsetX = 0, offsetY = 0, zoom = 1.0;
     
-    // Desktop Pan Support & Screen D-Pad
     let isPanning = false, panStartX, panStartY;
     let panSpeedX = 0, panSpeedY = 0;
     const PAN_VELOCITY = 15;
@@ -341,7 +335,7 @@
     let isDragging = false;
     let draggedBlock = null; 
     let mouseScreenX = 0, mouseScreenY = 0;
-    let dragTilt = 0; // Tracks block rotation velocity
+    let dragTilt = 0; 
     
     let lastTapTime = 0, lastTapX = 0, lastTapY = 0;
     let hoveredBlockIndex = -1;
@@ -388,7 +382,6 @@
     const refCtx = refCanvas.getContext('2d');
     
     const paletteDiv = document.getElementById('palette');
-    const refPanel = document.getElementById('reference-panel');
     const templateSelect = document.getElementById('template-select');
     
     const btnUndo = document.getElementById('btn-undo');
@@ -397,24 +390,31 @@
     const zoomInBtn = document.getElementById('btn-zoom-in');
     const zoomOutBtn = document.getElementById('btn-zoom-out');
     const btnFullscreen = document.getElementById('btn-fullscreen');
+    
+    const btnBlueprint = document.getElementById('btn-blueprint');
+    const blueprintOverlay = document.getElementById('blueprint-overlay');
+    const btnCloseBlueprint = document.getElementById('btn-close-blueprint');
 
     // --- Initialization ---
     function init() {
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
         
+        // Initial Center Positioning (Fixed ground visibility on mobile)
         offsetX = canvas.width / 2;
-        offsetY = canvas.height - 180;
+        offsetY = canvas.height * 0.65; 
 
         COLORS.forEach(color => {
             let swatch = document.createElement('div');
             swatch.className = 'color-swatch';
             swatch.style.backgroundColor = color;
             
-            swatch.addEventListener('pointerdown', (e) => {
-                e.preventDefault(); e.stopPropagation();
+            let holdTimer = null;
+            let isScrolling = false;
+            let startX = 0, startY = 0;
+
+            const triggerDrag = (e) => {
                 initAudio(); triggerHaptic('light');
-                
                 if(blocks.length >= MAX_BLOCKS) return;
                 
                 isDragging = true;
@@ -434,16 +434,65 @@
                 
                 swatch.setPointerCapture(e.pointerId);
                 activePointerId = e.pointerId;
+            };
+
+            swatch.addEventListener('pointerdown', (e) => {
+                // IMPORTANT: Mouse is completely 0ms instant grab!
+                if (e.pointerType === 'mouse') {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+                    isScrolling = false;
+                    triggerDrag(e);
+                    return;
+                }
+                
+                // Touch behavior: Allows scrolling natively, waits exactly 80ms (0.08s) to grab
+                isScrolling = false;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                holdTimer = setTimeout(() => {
+                    if (!isScrolling) triggerDrag(e);
+                }, 80); 
             });
 
-            swatch.addEventListener('pointermove', onPointerMove);
-            swatch.addEventListener('pointerup', onPointerUp);
-            swatch.addEventListener('pointercancel', onPointerUp);
+            swatch.addEventListener('pointermove', (e) => {
+                if (isDragging) {
+                    onPointerMove(e); 
+                    return;
+                }
+                
+                // Smart Directional Sensor for Touch (Overrides timer if swiping sideways)
+                if (e.pointerType !== 'mouse' && !isScrolling) {
+                    let dx = Math.abs(e.clientX - startX);
+                    let dy = Math.abs(e.clientY - startY);
+                    
+                    if (dx > 5 && dx > dy) {
+                        // User swiped horizontally! Instant grab.
+                        clearTimeout(holdTimer);
+                        triggerDrag(e);
+                    } else if (dy > 5 && dy > dx) {
+                        // User swiped vertically! Cancel grab, let it scroll natively.
+                        isScrolling = true;
+                        clearTimeout(holdTimer);
+                    }
+                }
+            });
+
+            swatch.addEventListener('pointerup', (e) => {
+                clearTimeout(holdTimer);
+                if (isDragging) onPointerUp(e);
+            });
+
+            swatch.addEventListener('pointercancel', (e) => {
+                clearTimeout(holdTimer);
+                if (isDragging) onPointerUp(e);
+            });
             
             paletteDiv.appendChild(swatch);
         });
 
-        // Initialize Screen D-Pad
+        // Initialize D-Pad Camera Controls
         function bindNavBtn(id, dx, dy) {
             let btn = document.getElementById(id);
             const start = (e) => { e.preventDefault(); panSpeedX = dx; panSpeedY = dy; triggerHaptic('light'); };
@@ -453,7 +502,6 @@
             btn.addEventListener('pointerup', stop);
             btn.addEventListener('pointerleave', stop);
             btn.addEventListener('pointercancel', stop);
-            
             btn.addEventListener('touchstart', start, {passive: false});
             btn.addEventListener('touchend', stop, {passive: false});
         }
@@ -465,7 +513,7 @@
 
         document.getElementById('nav-center').addEventListener('pointerdown', (e) => {
             e.preventDefault(); triggerHaptic('medium');
-            offsetX = canvas.width / 2; offsetY = canvas.height - 180; zoom = 1.0;
+            offsetX = canvas.width / 2; offsetY = canvas.height * 0.65; zoom = 1.0;
         });
 
         saveState(); 
@@ -473,7 +521,6 @@
     }
 
     function resizeCanvas() {
-        // Fix: Use the parent container to map internal pixels to exact CSS screen dimensions 1:1.
         const workspace = document.getElementById('workspace');
         canvas.width = workspace.clientWidth;
         canvas.height = workspace.clientHeight;
@@ -517,7 +564,7 @@
 
     function reset() {
         blocks = []; saveState();
-        offsetX = canvas.width / 2; offsetY = canvas.height - 180; zoom = 1.0;
+        offsetX = canvas.width / 2; offsetY = canvas.height * 0.65; zoom = 1.0;
         playSound('magic'); spawnParticles(canvas.width/2, canvas.height/2, '#FFDE59', 30);
     }
 
@@ -529,7 +576,6 @@
     function screenToWorld(x, y) { return { x: (x - offsetX) / zoom, y: (y - offsetY) / zoom }; }
     function worldToScreen(x, y) { return { x: (x * zoom) + offsetX, y: (y * zoom) + offsetY }; }
 
-    // --- Weather & Particles ---
     function spawnParticles(screenX, screenY, color, count=10) {
         for(let i=0; i<count; i++) {
             particles.push({
@@ -627,9 +673,7 @@
         seasonTimer += dt;
         dashOffset -= 0.5;
         
-        // Handle Camera/Screen panning via D-Pad
-        offsetX += panSpeedX;
-        offsetY += panSpeedY;
+        offsetX += panSpeedX; offsetY += panSpeedY;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let seasonData = drawScenery(ctx);
@@ -659,7 +703,6 @@
             }
         });
 
-        // Snap Ghost Preview (aligned perfectly underneath finger)
         if (isDragging && draggedBlock) {
             let worldPos = screenToWorld(mouseScreenX, mouseScreenY);
             let snap = calculateSnap(worldPos.x - draggedBlock.offsetX + BLOCK_SIZE/2, worldPos.y - draggedBlock.offsetY + BLOCK_SIZE/2);
@@ -671,9 +714,8 @@
 
         ctx.restore();
 
-        // 1:1 INSTANT DRAGGING WITH NO LIFT OFFSET (True to finger position)
+        // 1:1 DRAGGING
         if (isDragging && draggedBlock) {
-            // Elastic pop scale effect when grabbed
             draggedBlock.scale += (draggedBlock.targetScale - draggedBlock.scale) * 0.35;
             
             dragTilt *= 0.8; 
@@ -727,16 +769,15 @@
         }
     }
 
-    // --- CRUCIAL FIX: PIXEL PERFECT POINTER MAPPING ---
     function updateMousePos(e) {
-        // We subtract the canvas offset so the Touch aligns perfectly with the Canvas Drawing area
         const rect = canvas.getBoundingClientRect();
         mouseScreenX = e.clientX - rect.left; 
         mouseScreenY = e.clientY - rect.top;
     }
 
+    // GENEROUS HITBOX
     function getBlockAt(worldX, worldY) {
-        const PAD = 10; // Extra invisible area to make block easy to grab
+        const PAD = 15; 
         for (let i = blocks.length - 1; i >= 0; i--) {
             let b = blocks[i];
             if (worldX >= b.x - PAD && worldX <= b.x + BLOCK_SIZE + PAD && 
@@ -761,7 +802,7 @@
         if (activePointerId !== null && activePointerId !== e.pointerId) return; 
         
         let moveX = (e.clientX - canvas.getBoundingClientRect().left) - mouseScreenX;
-        if (isDragging) dragTilt += moveX * 0.02; // Physics sway
+        if (isDragging) dragTilt += moveX * 0.02; 
         
         updateMousePos(e);
 
@@ -772,9 +813,7 @@
             hoveredBlockIndex = -1;
         }
 
-        if (isDragging || isPanning) {
-            e.preventDefault(); e.stopPropagation();
-        }
+        if (isDragging || isPanning) { e.preventDefault(); e.stopPropagation(); }
         
         if (isPanning) {
             offsetX = mouseScreenX - panStartX;
@@ -787,7 +826,6 @@
         e.preventDefault(); e.stopPropagation();
 
         if (isDragging && draggedBlock) {
-            // Safe bounding check within actual canvas width/height
             if (mouseScreenX >= 0 && mouseScreenX <= canvas.width &&
                 mouseScreenY >= 0 && mouseScreenY <= canvas.height) {
                 
@@ -860,6 +898,8 @@
             let offY = worldPos.y - b.y;
             dragTilt = 0;
             
+            dragRenderX = mouseScreenX; dragRenderY = mouseScreenY;
+            
             draggedBlock = { 
                 color: b.color, sourceIndex: clickedIndex, 
                 offsetX: offX, offsetY: offY,
@@ -873,14 +913,12 @@
         }
     };
 
-    // Main Canvas Events
     canvas.addEventListener('pointerdown', onCanvasPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerUp);
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-    // Wheel zooming
     canvas.addEventListener('wheel', (e) => {
         e.preventDefault();
         const oldZoom = zoom;
@@ -915,21 +953,30 @@
         activeTemplate = e.target.value; playSound('magic'); triggerHaptic('medium');
         spawnParticles(canvas.width/2, canvas.height/4, '#FFDE59', 20);
         if (activeTemplate === 'none') {
-            refPanel.style.display = 'none'; refPanel.classList.remove('expanded');
+            btnBlueprint.style.display = 'none';
         } else {
-            refPanel.style.display = 'block'; drawThumbnail();
+            btnBlueprint.style.display = 'inline-block';
+            openBlueprintModal();
         }
     });
 
-    refPanel.addEventListener('click', () => {
-        playSound('pickup'); refPanel.classList.toggle('expanded');
-        setTimeout(drawThumbnail, 400);
+    btnBlueprint.addEventListener('click', openBlueprintModal);
+    btnCloseBlueprint.addEventListener('click', () => {
+        playSound('pickup');
+        blueprintOverlay.style.display = 'none';
     });
 
-    function drawThumbnail() {
+    function openBlueprintModal() {
+        playSound('pickup');
+        blueprintOverlay.style.display = 'flex';
+        setTimeout(drawBlueprintModal, 50);
+    }
+
+    function drawBlueprintModal() {
         if (activeTemplate === 'none') return;
-        refCanvas.width = refPanel.clientWidth;
-        refCanvas.height = refPanel.clientHeight - 22; 
+        const modal = document.querySelector('.blueprint-modal');
+        refCanvas.width = modal.clientWidth - 40;
+        refCanvas.height = modal.clientHeight - 100; 
         refCtx.clearRect(0, 0, refCanvas.width, refCanvas.height);
         
         const template = TEMPLATES[activeTemplate];
